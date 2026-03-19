@@ -102,27 +102,18 @@ h1 { text-align: center; margin: 10px 0; }
   cursor: pointer;
 }
 
-.loading { text-align: center; }
-
 .spinner {
   width: 30px;
   height: 30px;
   border: 3px solid #ddd;
   border-top: 3px solid #2d7ef7;
   border-radius: 50%;
-  margin: 10px auto;
+  margin: 20px auto;
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-.info {
-  margin-top: 15px;
-  background: #f1f4f8;
-  padding: 12px;
-  border-radius: 8px;
 }
 
 /* Camera */
@@ -174,7 +165,6 @@ video {
   <canvas id="canvas" style="display:none;"></canvas>
 
   <div id="result" class="result"></div>
-  <div id="info" class="info" style="display:none;"></div>
 
 </div>
 
@@ -251,29 +241,12 @@ function capture() {
   });
 }
 
-// VIN decode
-function decodeVIN(vin) {
-  const yearCodes = {
-    A:2010,B:2011,C:2012,D:2013,E:2014,F:2015,
-    G:2016,H:2017,J:2018,K:2019,L:2020,M:2021,
-    N:2022,P:2023,R:2024,S:2025,T:2026
-  };
-
-  return {
-    year: yearCodes[vin[9]] || "Unknown",
-    plant: vin[10],
-    serial: vin.slice(11)
-  };
-}
-
 // Main
 function prepare() {
   const vin = document.getElementById("vin").value.trim();
   const result = document.getElementById("result");
-  const info = document.getElementById("info");
 
   result.innerHTML = "";
-  info.style.display = "none";
 
   if (vin.length !== 17) {
     result.innerHTML = "<div style='color:red'>Invalid VIN</div>";
@@ -283,7 +256,6 @@ function prepare() {
   result.innerHTML = `<div class="spinner"></div>`;
 
   stickerUrl = endpoint + vin;
-  const decoded = decodeVIN(vin);
 
   setTimeout(() => {
     result.innerHTML = `
@@ -291,18 +263,10 @@ function prepare() {
         View Window Sticker
       </button>
     `;
-
-    info.style.display = "block";
-    info.innerHTML = `
-      <strong>VIN Info</strong><br>
-      Year: ${decoded.year}<br>
-      Plant: ${decoded.plant}<br>
-      Serial: ${decoded.serial}
-    `;
   }, 400);
 }
 
-// Open sticker (WORKING)
+// Open sticker
 function openSticker() {
   window.open(stickerUrl, "_blank");
 }
