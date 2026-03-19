@@ -162,8 +162,10 @@ video {
 
   <button class="main-btn" onclick="prepare()">Find Window Sticker</button>
 
-  <!-- Camera -->
   <div id="camera">
+    <p style="color:#666; font-size:13px;">
+      Align VIN in frame (dashboard near windshield)
+    </p>
     <video id="video" autoplay></video>
     <button class="small-btn" onclick="capture()">Capture VIN</button>
     <button class="small-btn" onclick="stopCamera()">Close</button>
@@ -176,7 +178,6 @@ video {
 
 </div>
 
-<!-- OCR -->
 <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
 
 <script>
@@ -185,7 +186,7 @@ let stream;
 
 const endpoint = "https://www.dodge.com/hostd/windowsticker/getWindowStickerPdf.do?vin=";
 
-// VIN format
+// Format VIN
 document.getElementById("vin").addEventListener("input", e => {
   e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 });
@@ -196,7 +197,7 @@ async function pasteVIN() {
   document.getElementById("vin").value = text.toUpperCase();
 }
 
-// Camera start
+// Camera
 async function startCamera() {
   const video = document.getElementById("video");
   const cam = document.getElementById("camera");
@@ -210,15 +211,12 @@ async function startCamera() {
   video.srcObject = stream;
 }
 
-// Stop camera
 function stopCamera() {
   document.getElementById("camera").style.display = "none";
-  if (stream) {
-    stream.getTracks().forEach(track => track.stop());
-  }
+  if (stream) stream.getTracks().forEach(t => t.stop());
 }
 
-// Capture + OCR
+// OCR Capture
 function capture() {
   const video = document.getElementById("video");
   const canvas = document.getElementById("canvas");
@@ -233,21 +231,27 @@ function capture() {
 
   document.getElementById("result").innerHTML = "Reading VIN...";
 
-  Tesseract.recognize(canvas, 'eng').then(({ data: { text } }) => {
+  Tesseract.recognize(canvas, 'eng', {
+    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  }).then(({ data: { text } }) => {
 
-    // Extract VIN (17 chars)
-    const match = text.toUpperCase().match(/[A-HJ-NPR-Z0-9]{17}/);
+    let cleaned = text.toUpperCase()
+      .replace(/O/g, "0")
+      .replace(/I/g, "1")
+      .replace(/Q/g, "0");
+
+    const match = cleaned.match(/[A-HJ-NPR-Z0-9]{17}/);
 
     if (match) {
       document.getElementById("vin").value = match[0];
-      document.getElementById("result").innerHTML = "VIN detected!";
+      prepare(); // auto search
     } else {
       document.getElementById("result").innerHTML = "Couldn't detect VIN. Try again.";
     }
   });
 }
 
-// Decode VIN
+// VIN decode
 function decodeVIN(vin) {
   const yearCodes = {
     A:2010,B:2011,C:2012,D:2013,E:2014,F:2015,
@@ -294,18 +298,26 @@ function prepare() {
       Plant: ${decoded.plant}<br>
       Serial: ${decoded.serial}
     `;
-  }, 500);
+  }, 400);
 }
 
+// OPEN = new tab
 function openSticker() {
   window.open(stickerUrl, "_blank");
 }
 
-function downloadSticker() {
+// DOWNLOAD = force download via blob
+async function downloadSticker() {
+  const res = await fetch(stickerUrl);
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+
   const a = document.createElement("a");
-  a.href = stickerUrl;
-  a.download = "sticker.pdf";
+  a.href = url;
+  a.download = "window_sticker.pdf";
   a.click();
+
+  window.URL.revokeObjectURL(url);
 }
 </script>
 
