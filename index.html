@@ -136,6 +136,13 @@ h1 {
   padding: 12px;
   border-radius: 8px;
 }
+
+/* Scanner box */
+#reader {
+  margin-top: 15px;
+  border-radius: 12px;
+  overflow: hidden;
+}
 </style>
 </head>
 
@@ -162,31 +169,65 @@ h1 {
 
   <button class="main-btn" onclick="prepare()">Find Window Sticker</button>
 
+  <div id="reader" style="display:none;"></div>
+
+  <button onclick="stopScanner()" class="small-btn" style="margin-top:10px;">
+    Stop Camera
+  </button>
+
   <div id="result" class="result"></div>
   <div id="info" class="info" style="display:none;"></div>
 
 </div>
 
+<!-- Scanner library -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+
 <script>
 let stickerUrl = null;
+let scanner;
+
 const endpoint = "https://www.dodge.com/hostd/windowsticker/getWindowStickerPdf.do?vin=";
 
-// Auto format VIN
+// VIN formatting
 document.getElementById("vin").addEventListener("input", e => {
   e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 });
 
-// Paste button
+// Paste VIN
 async function pasteVIN() {
   const text = await navigator.clipboard.readText();
   document.getElementById("vin").value = text.toUpperCase();
 }
 
-// Scan VIN (basic)
-async function scanVIN() {
-  alert("Use your camera app to scan VIN barcode for now — advanced scanner can be added later.");
+// Start scanner
+function scanVIN() {
+  const reader = document.getElementById("reader");
+  reader.style.display = "block";
+
+  scanner = new Html5Qrcode("reader");
+
+  scanner.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    (decodedText) => {
+      document.getElementById("vin").value = decodedText.toUpperCase();
+      stopScanner();
+    },
+    () => {}
+  );
 }
 
+// Stop scanner
+function stopScanner() {
+  if (scanner) {
+    scanner.stop().then(() => {
+      document.getElementById("reader").style.display = "none";
+    });
+  }
+}
+
+// VIN decode
 function decodeVIN(vin) {
   const yearCodes = {
     A:2010,B:2011,C:2012,D:2013,E:2014,F:2015,
@@ -201,6 +242,7 @@ function decodeVIN(vin) {
   };
 }
 
+// Main action
 function prepare() {
   const vin = document.getElementById("vin").value.trim();
   const result = document.getElementById("result");
