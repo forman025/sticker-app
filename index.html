@@ -5,33 +5,26 @@
 
 <title>Mopar Window Sticker Lookup | Free VIN Tool</title>
 
-<meta name="description" content="Get your Dodge, Jeep, RAM, or Chrysler window sticker instantly using your VIN. Fast, free Mopar sticker lookup tool.">
-<meta name="keywords" content="mopar window sticker, dodge vin lookup, jeep sticker, ram vin sticker, chrysler window sticker">
+<meta name="description" content="Get your Dodge, Jeep, RAM, or Chrysler window sticker instantly using your VIN.">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Open Graph -->
-<meta property="og:title" content="Mopar Window Sticker Lookup">
-<meta property="og:description" content="Lookup factory window stickers by VIN instantly.">
-<meta property="og:type" content="website">
-
-<!-- Favicon -->
 <link rel="icon" href="/favicon.png">
 
 <style>
   body {
     margin: 0;
     font-family: 'Segoe UI', Arial, sans-serif;
-    background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
-    color: white;
+    background: #f5f7fa;
+    color: #111;
   }
 
   .app {
     max-width: 500px;
-    margin: 40px auto;
-    background: #1c1c1c;
+    margin: 50px auto;
+    background: white;
     border-radius: 16px;
     padding: 25px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
   }
 
   .logo {
@@ -42,7 +35,6 @@
 
   .logo img {
     max-width: 200px;
-    height: auto;
   }
 
   h1 {
@@ -53,7 +45,7 @@
 
   .subtitle {
     text-align: center;
-    color: #aaa;
+    color: #666;
     margin-bottom: 15px;
     font-size: 14px;
   }
@@ -62,11 +54,16 @@
     width: 100%;
     padding: 14px;
     border-radius: 10px;
-    border: none;
-    background: #2a2a2a;
-    color: white;
-    margin-bottom: 12px;
+    border: 1px solid #ddd;
+    background: #fafafa;
     font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: #2d7ef7;
+    background: white;
   }
 
   .main-btn {
@@ -74,7 +71,7 @@
     padding: 14px;
     border-radius: 10px;
     border: none;
-    background: #ff3b3b;
+    background: #2d7ef7;
     color: white;
     font-weight: bold;
     cursor: pointer;
@@ -82,7 +79,7 @@
   }
 
   .main-btn:hover {
-    background: #ff1f1f;
+    background: #1e63d6;
   }
 
   .result {
@@ -94,25 +91,24 @@
     width: 100%;
     margin-top: 10px;
     padding: 12px;
-    background: #444;
+    background: #eef2f7;
     border: none;
     border-radius: 8px;
-    color: white;
     cursor: pointer;
     font-size: 15px;
   }
 
   .open-btn:hover {
-    background: #666;
+    background: #e0e6ef;
   }
 
   .error {
-    color: #ff4d4d;
+    color: #e53935;
   }
 
   .info {
     margin-top: 15px;
-    background: #2a2a2a;
+    background: #f1f4f8;
     padding: 12px;
     border-radius: 8px;
     font-size: 14px;
@@ -120,7 +116,7 @@
   }
 
   .loading {
-    color: #aaa;
+    color: #777;
   }
 </style>
 </head>
@@ -129,9 +125,8 @@
 
 <div class="app">
 
-  <!-- LOGO -->
   <div class="logo">
-    <img src="logo.png" alt="Mopar Sticker Lookup Logo">
+    <img src="logo.png" alt="Mopar Sticker Lookup">
   </div>
 
   <h1>Mopar Window Sticker Lookup</h1>
@@ -157,10 +152,8 @@ function decodeVIN(vin) {
     N:2022, P:2023, R:2024, S:2025, T:2026
   };
 
-  const year = yearCodes[vin[9]] || "Unknown";
-
   return {
-    year: year,
+    year: yearCodes[vin[9]] || "Unknown",
     plant: vin[10],
     serial: vin.slice(11)
   };
@@ -173,7 +166,6 @@ function prepare() {
 
   result.innerHTML = "";
   info.style.display = "none";
-  stickerUrl = null;
 
   if (vin.length !== 17) {
     result.innerHTML = "<div class='error'>Invalid VIN</div>";
@@ -198,7 +190,7 @@ function prepare() {
       Plant Code: ${decoded.plant}<br>
       Serial: ${decoded.serial}
     `;
-  }, 400);
+  }, 300);
 }
 
 function openSticker() {
