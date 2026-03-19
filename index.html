@@ -176,6 +176,17 @@ let stream;
 
 const endpoint = "https://www.dodge.com/hostd/windowsticker/getWindowStickerPdf.do?vin=";
 
+// Load VIN from URL
+window.onload = () => {
+  const params = new URLSearchParams(window.location.search);
+  const vin = params.get("vin");
+
+  if (vin && vin.length === 17) {
+    document.getElementById("vin").value = vin;
+    prepare(); // auto-run
+  }
+};
+
 // Format VIN
 document.getElementById("vin").addEventListener("input", e => {
   e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -262,6 +273,9 @@ function prepare() {
       <button class="open-btn" onclick="openSticker()">
         View Window Sticker
       </button>
+      <button class="open-btn" onclick="copyLink('${vin}')">
+        Copy Share Link
+      </button>
     `;
   }, 400);
 }
@@ -269,6 +283,13 @@ function prepare() {
 // Open sticker
 function openSticker() {
   window.open(stickerUrl, "_blank");
+}
+
+// Copy share link
+function copyLink(vin) {
+  const url = `${window.location.origin}/?vin=${vin}`;
+  navigator.clipboard.writeText(url);
+  alert("Link copied!");
 }
 </script>
 
