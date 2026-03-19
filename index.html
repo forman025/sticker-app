@@ -186,7 +186,7 @@ let stream;
 
 const endpoint = "https://www.dodge.com/hostd/windowsticker/getWindowStickerPdf.do?vin=";
 
-// VIN formatting
+// Format VIN
 document.getElementById("vin").addEventListener("input", e => {
   e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 });
@@ -288,7 +288,7 @@ function prepare() {
   setTimeout(() => {
     result.innerHTML = `
       <button class="open-btn" onclick="openSticker()">
-        View / Download Sticker
+        View Window Sticker
       </button>
     `;
 
@@ -302,7 +302,7 @@ function prepare() {
   }, 400);
 }
 
-// Open PDF
+// Open sticker (WORKING)
 function openSticker() {
   window.open(stickerUrl, "_blank");
 }
