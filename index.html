@@ -11,6 +11,11 @@
 <link rel="icon" href="/favicon.png">
 
 <style>
+  /* 🔥 FIXES OVERFLOW ISSUE */
+  * {
+    box-sizing: border-box;
+  }
+
   body {
     margin: 0;
     font-family: 'Segoe UI', Arial, sans-serif;
@@ -20,11 +25,11 @@
 
   .app {
     max-width: 500px;
-    margin: 50px auto;
+    margin: 60px auto;
     background: white;
     border-radius: 16px;
-    padding: 25px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    padding: 30px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.08);
   }
 
   .logo {
@@ -34,7 +39,8 @@
   }
 
   .logo img {
-    max-width: 200px;
+    max-width: 180px;
+    height: auto;
   }
 
   h1 {
@@ -46,7 +52,7 @@
   .subtitle {
     text-align: center;
     color: #666;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     font-size: 14px;
   }
 
@@ -58,12 +64,15 @@
     background: #fafafa;
     font-size: 16px;
     margin-bottom: 12px;
+    display: block;
+    transition: 0.2s;
   }
 
   input:focus {
     outline: none;
     border-color: #2d7ef7;
     background: white;
+    box-shadow: 0 0 0 2px rgba(45,126,247,0.1);
   }
 
   .main-btn {
@@ -76,6 +85,7 @@
     font-weight: bold;
     cursor: pointer;
     font-size: 16px;
+    transition: 0.2s;
   }
 
   .main-btn:hover {
@@ -96,6 +106,7 @@
     border-radius: 8px;
     cursor: pointer;
     font-size: 15px;
+    transition: 0.2s;
   }
 
   .open-btn:hover {
@@ -104,6 +115,7 @@
 
   .error {
     color: #e53935;
+    font-weight: 500;
   }
 
   .info {
