@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+
+<title>Mopar Window Sticker Lookup | Free VIN Tool</title>
+
+<meta name="description" content="Get your Dodge, Jeep, RAM, or Chrysler window sticker instantly using your VIN. Fast, free Mopar sticker lookup tool.">
+<meta name="keywords" content="mopar window sticker, dodge vin lookup, jeep sticker, ram vin sticker, chrysler window sticker">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Open Graph -->
+<meta property="og:title" content="Mopar Window Sticker Lookup">
+<meta property="og:description" content="Lookup factory window stickers by VIN instantly.">
+<meta property="og:type" content="website">
+
+<!-- Favicon -->
+<link rel="icon" href="/favicon.png">
+
+<style>
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+    color: white;
+  }
+
+  .app {
+    max-width: 500px;
+    margin: 40px auto;
+    background: #1c1c1c;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+  }
+
+  .logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+
+  .logo img {
+    max-width: 200px;
+    height: auto;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    margin: 10px 0;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: #aaa;
+    margin-bottom: 15px;
+    font-size: 14px;
+  }
+
+  input {
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    border: none;
+    background: #2a2a2a;
+    color: white;
+    margin-bottom: 12px;
+    font-size: 16px;
+  }
+
+  .main-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    border: none;
+    background: #ff3b3b;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .main-btn:hover {
+    background: #ff1f1f;
+  }
+
+  .result {
+    margin-top: 20px;
+    text-align: center;
+  }
+
+  .open-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+    background: #444;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    font-size: 15px;
+  }
+
+  .open-btn:hover {
+    background: #666;
+  }
+
+  .error {
+    color: #ff4d4d;
+  }
+
+  .info {
+    margin-top: 15px;
+    background: #2a2a2a;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    text-align: left;
+  }
+
+  .loading {
+    color: #aaa;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- LOGO -->
+  <div class="logo">
+    <img src="logo.png" alt="Mopar Sticker Lookup Logo">
+  </div>
+
+  <h1>Mopar Window Sticker Lookup</h1>
+  <div class="subtitle">Dodge • Jeep • RAM • Chrysler</div>
+
+  <input id="vin" placeholder="Enter 17-digit VIN" maxlength="17">
+  <button class="main-btn" onclick="prepare()">Find Window Sticker</button>
+
+  <div id="result" class="result"></div>
+  <div id="info" class="info" style="display:none;"></div>
+
+</div>
+
+<script>
+let stickerUrl = null;
+
+const endpoint = "https://www.dodge.com/hostd/windowsticker/getWindowStickerPdf.do?vin=";
+
+function decodeVIN(vin) {
+  const yearCodes = {
+    A:2010, B:2011, C:2012, D:2013, E:2014, F:2015,
+    G:2016, H:2017, J:2018, K:2019, L:2020, M:2021,
+    N:2022, P:2023, R:2024, S:2025, T:2026
+  };
+
+  const year = yearCodes[vin[9]] || "Unknown";
+
+  return {
+    year: year,
+    plant: vin[10],
+    serial: vin.slice(11)
+  };
+}
+
+function prepare() {
+  const vin = document.getElementById("vin").value.trim().toUpperCase();
+  const result = document.getElementById("result");
+  const info = document.getElementById("info");
+
+  result.innerHTML = "";
+  info.style.display = "none";
+  stickerUrl = null;
+
+  if (vin.length !== 17) {
+    result.innerHTML = "<div class='error'>Invalid VIN</div>";
+    return;
+  }
+
+  result.innerHTML = "<div class='loading'>Preparing sticker...</div>";
+
+  stickerUrl = endpoint + vin;
+  const decoded = decodeVIN(vin);
+
+  setTimeout(() => {
+    result.innerHTML = `
+      <button class="open-btn" onclick="openSticker()">Open Window Sticker</button>
+      <button class="open-btn" onclick="downloadSticker()">Download PDF</button>
+    `;
+
+    info.style.display = "block";
+    info.innerHTML = `
+      <strong>VIN Info</strong><br>
+      Year: ${decoded.year}<br>
+      Plant Code: ${decoded.plant}<br>
+      Serial: ${decoded.serial}
+    `;
+  }, 400);
+}
+
+function openSticker() {
+  window.open(stickerUrl, "_blank");
+}
+
+function downloadSticker() {
+  const a = document.createElement("a");
+  a.href = stickerUrl;
+  a.download = "window_sticker.pdf";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+</script>
+
+</body>
+</html>
