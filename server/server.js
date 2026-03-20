@@ -6,7 +6,7 @@ const app = express();
 app.use(express.json());
 app.use(require("cors")());
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const DB_FILE = "./db.json";
 
 // Load DB
@@ -90,5 +90,5 @@ app.post("/upload", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log("Server running on port 3000");
+  console.log("Server running on port", PORT);
 });
