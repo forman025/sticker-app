@@ -7,6 +7,12 @@ const app = express();
 app.use(express.json());
 app.use(require("cors")());
 
+// 🔥 REQUEST LOGGER (VERY IMPORTANT)
+app.use((req, res, next) => {
+  console.log("REQUEST:", req.method, req.url);
+  next();
+});
+
 const PORT = process.env.PORT || 3000;
 
 const OWNER = "forman025";
@@ -74,7 +80,7 @@ async function updateDB(newDB) {
   }
 }
 
-// 🔥 FIXED UPLOAD (handles existing files)
+// UPLOAD PDF (handles existing files)
 async function uploadPDF(vin, buffer) {
   console.log("TOKEN:", TOKEN ? "exists" : "missing");
 
@@ -82,11 +88,9 @@ async function uploadPDF(vin, buffer) {
   const base64 = buffer.toString("base64");
 
   try {
-    // check if file exists
+    // check if exists
     const check = await fetch(`${GITHUB_API}/${filePath}`, {
-      headers: {
-        Authorization: `token ${TOKEN}`
-      }
+      headers: { Authorization: `token ${TOKEN}` }
     });
 
     let sha = null;
@@ -132,7 +136,7 @@ app.get("/sticker/:vin", async (req, res) => {
 
   const db = await getDB();
 
-  // cache
+  // cached
   if (db[vin] && db[vin].file) {
     return res.json({
       success: true,
@@ -145,7 +149,10 @@ app.get("/sticker/:vin", async (req, res) => {
     const response = await fetch(dodgeURL);
     const buffer = await response.buffer();
 
+    // 🔥 FIXED: removed size restriction
     if (response.status === 200) {
+
+      console.log("DODGE SUCCESS");
 
       const filePath = await uploadPDF(vin, buffer);
 
