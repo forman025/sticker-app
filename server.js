@@ -1,3 +1,5 @@
+console.log("FORCE NEW DEPLOY");
+
 console.log("NEW CODE RUNNING");
 
 const express = require("express");
