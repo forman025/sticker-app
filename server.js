@@ -1,6 +1,5 @@
 const express = require("express");
 const fetch = require("node-fetch");
-const fs = require("fs");
 
 const app = express();
 app.use(express.json());
@@ -17,55 +16,63 @@ const GITHUB_API = `https://api.github.com/repos/${OWNER}/${REPO}/contents`;
 
 const TOKEN = process.env.GITHUB_TOKEN;
 
-const DB_FILE = "./db.json";
-
-let db = {};
-if (fs.existsSync(DB_FILE)) {
-  try {
-    db = JSON.parse(fs.readFileSync(DB_FILE));
-  } catch {
-    db = {};
-  }
-}
-
-function saveDB() {
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-}
-
 function getDodgeURL(vin) {
   return `https://www.dodge.com/hostc/windowSticker.do?vin=${vin}`;
 }
 
-// 🔥 upload helper (background)
-async function uploadToGitHub(vin, buffer) {
+// 🔥 GET db.json from GitHub
+async function getDB() {
+  const res = await fetch(`${GITHUB_API}/db.json`, {
+    headers: { Authorization: `token ${TOKEN}` }
+  });
+
+  const data = await res.json();
+  const content = Buffer.from(data.content, "base64").toString("utf-8");
+
+  return {
+    db: JSON.parse(content),
+    sha: data.sha
+  };
+}
+
+// 🔥 UPDATE db.json on GitHub
+async function updateDB(newDB, sha) {
+  const content = Buffer.from(JSON.stringify(newDB, null, 2)).toString("base64");
+
+  await fetch(`${GITHUB_API}/db.json`, {
+    method: "PUT",
+    headers: {
+      Authorization: `token ${TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: "Update db.json",
+      content,
+      sha,
+      branch: BRANCH
+    })
+  });
+}
+
+// 🔥 UPLOAD PDF TO GITHUB
+async function uploadPDF(vin, buffer) {
   const filePath = `stickers/${vin}.pdf`;
   const base64 = buffer.toString("base64");
 
-  try {
-    await fetch(`${GITHUB_API}/${filePath}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `token ${TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: `Add ${vin}`,
-        content: base64,
-        branch: BRANCH
-      })
-    });
+  await fetch(`${GITHUB_API}/${filePath}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `token ${TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: `Add ${vin}`,
+      content: base64,
+      branch: BRANCH
+    })
+  });
 
-    db[vin] = {
-      file: filePath,
-      timestamp: Date.now()
-    };
-
-    saveDB();
-
-    console.log("Uploaded:", vin);
-  } catch (err) {
-    console.log("Upload failed:", err);
-  }
+  return filePath;
 }
 
 // 🔥 MAIN ROUTE
@@ -74,44 +81,49 @@ app.get("/sticker/:vin", async (req, res) => {
   const dodgeURL = getDodgeURL(vin);
 
   try {
-    const response = await fetch(dodgeURL, {
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "application/pdf"
-      }
-    });
+    const { db, sha } = await getDB();
 
+    // ✅ CHECK CACHE (GitHub db.json)
+    if (db[vin] && db[vin].file) {
+      return res.json({
+        success: true,
+        cached: true,
+        url: `${GITHUB_BASE}/${db[vin].file}`
+      });
+    }
+
+    // 🔥 FETCH FROM DODGE
+    const response = await fetch(dodgeURL);
     const buffer = await response.buffer();
 
-    // ✅ VALID PDF FROM DODGE
     if (response.status === 200 && buffer.length > 10000) {
 
-      // 🔥 RETURN DODGE IMMEDIATELY (NO 404 EVER)
+      // return immediately
       res.json({
         success: true,
         source: "dodge",
         url: dodgeURL
       });
 
-      // 🔥 BACKGROUND: upload + save
-      if (!db[vin]) {
-        uploadToGitHub(vin, buffer);
-      }
+      // 🔥 BACKGROUND: upload + update db.json
+      (async () => {
+        const filePath = await uploadPDF(vin, buffer);
+
+        db[vin] = {
+          file: filePath,
+          timestamp: Date.now()
+        };
+
+        await updateDB(db, sha);
+
+        console.log("Saved to GitHub DB:", vin);
+      })();
 
       return;
     }
 
   } catch (err) {
-    console.log("Dodge fetch failed:", err);
-  }
-
-  // ❌ Dodge failed → fallback to GitHub if exists
-  if (db[vin] && db[vin].file) {
-    return res.json({
-      success: true,
-      source: "cache",
-      url: `${GITHUB_BASE}/${db[vin].file}`
-    });
+    console.log("Error:", err);
   }
 
   return res.json({
