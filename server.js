@@ -20,11 +20,13 @@ function getDodgeURL(vin) {
   return `https://www.dodge.com/hostc/windowSticker.do?vin=${vin}`;
 }
 
-// 🔥 SAFE DB FETCH
+// GET DB
 async function getDB() {
   try {
     const res = await fetch(`${GITHUB_API}/db.json`, {
-      headers: { Authorization: `token ${TOKEN}` }
+      headers: {
+        Authorization: `token ${TOKEN}`
+      }
     });
 
     if (!res.ok) return {};
@@ -33,13 +35,12 @@ async function getDB() {
     const content = Buffer.from(data.content, "base64").toString("utf-8");
 
     return JSON.parse(content);
-
   } catch {
     return {};
   }
 }
 
-// 🔥 ALWAYS UPDATE DB WITH FRESH SHA
+// UPDATE DB
 async function updateDB(newDB) {
   try {
     const res = await fetch(`${GITHUB_API}/db.json`, {
@@ -75,13 +76,13 @@ async function updateDB(newDB) {
   }
 }
 
-// 🔥 UPLOAD PDF
+// UPLOAD PDF (WORKING VERSION)
 async function uploadPDF(vin, buffer) {
   const filePath = `stickers/${vin}.pdf`;
   const base64 = buffer.toString("base64");
 
   try {
-    await fetch(`${GITHUB_API}/${filePath}`, {
+    const res = await fetch(`${GITHUB_API}/${filePath}`, {
       method: "PUT",
       headers: {
         Authorization: `token ${TOKEN}`,
@@ -94,24 +95,27 @@ async function uploadPDF(vin, buffer) {
       })
     });
 
-    console.log("Uploaded:", vin);
+    if (!res.ok) {
+      console.log("Upload failed:", await res.text());
+      return null;
+    }
 
+    console.log("Uploaded:", vin);
     return filePath;
 
   } catch (err) {
-    console.log("Upload failed:", err);
+    console.log("Upload error:", err);
     return null;
   }
 }
 
-// 🔥 MAIN ROUTE
+// MAIN ROUTE
 app.get("/sticker/:vin", async (req, res) => {
   const vin = req.params.vin.toUpperCase();
   const dodgeURL = getDodgeURL(vin);
 
   const db = await getDB();
 
-  // ✅ if already cached
   if (db[vin] && db[vin].file) {
     return res.json({
       success: true,
@@ -126,18 +130,16 @@ app.get("/sticker/:vin", async (req, res) => {
 
     if (response.status === 200) {
 
-      // 🔥 ALWAYS RETURN DODGE
+      // return Dodge immediately
       res.json({
         success: true,
-        source: "dodge",
         url: dodgeURL
       });
 
-      // 🔥 BACKGROUND SAVE
+      // background save
       if (buffer.length > 10000) {
         (async () => {
           const filePath = await uploadPDF(vin, buffer);
-
           if (!filePath) return;
 
           db[vin] = {
@@ -153,13 +155,11 @@ app.get("/sticker/:vin", async (req, res) => {
     }
 
   } catch (err) {
-    console.log("Dodge error:", err);
+    console.log(err);
   }
 
-  // 🔥 LAST RESORT
   return res.json({
     success: true,
-    fallback: true,
     url: dodgeURL
   });
 });
