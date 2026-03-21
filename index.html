@@ -6,6 +6,8 @@
   <title>Mopar Sticker Lookup</title>
 
   <style>
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -20,9 +22,11 @@
       width: 100%;
       max-width: 420px;
       padding: 24px;
+      margin: 0 auto;
     }
 
     .card {
+      width: 100%;
       background: white;
       padding: 24px;
       border-radius: 16px;
@@ -61,7 +65,6 @@
       border-radius: 10px;
       border: 1px solid #ddd;
       font-size: 16px;
-      box-sizing: border-box;
       text-transform: uppercase;
     }
 
@@ -124,11 +127,11 @@
       <div class="subtitle">Find your original Mopar window sticker instantly</div>
 
       <input id="vinInput" maxlength="17" placeholder="Enter VIN (e.g. 2C3CDX...)" />
-      <button id="searchBtn" class="search-btn" onclick="searchVIN()">Search</button>
+      <button id="searchBtn" class="search-btn">Search</button>
 
       <div id="status" class="status"></div>
 
-      <button id="openBtn" class="open-btn" style="display:none;" onclick="openSticker()">
+      <button id="openBtn" class="open-btn" style="display:none;">
         Open Sticker
       </button>
 
@@ -138,7 +141,7 @@
         <input id="requestVin" maxlength="17" placeholder="Enter VIN again" />
         <input id="emailInput" placeholder="Enter your email" />
 
-        <button class="search-btn" onclick="submitRequest()">Request Sticker</button>
+        <button id="requestBtn" class="search-btn">Request Sticker</button>
       </div>
 
     </div>
@@ -153,16 +156,23 @@
     const API = "https://mopar-backend.onrender.com";
     let currentURL = null;
 
-    function isIPhone() {
+    const vinInput = document.getElementById("vinInput");
+    const searchBtn = document.getElementById("searchBtn");
+    const openBtn = document.getElementById("openBtn");
+    const status = document.getElementById("status");
+    const requestBox = document.getElementById("requestBox");
+    const requestBtn = document.getElementById("requestBtn");
+
+    function isIOS() {
       return /iPhone|iPad|iPod/i.test(navigator.userAgent);
     }
 
+    searchBtn.addEventListener("click", searchVIN);
+    openBtn.addEventListener("click", openSticker);
+    requestBtn.addEventListener("click", submitRequest);
+
     async function searchVIN() {
-      const vin = document.getElementById("vinInput").value.trim().toUpperCase();
-      const status = document.getElementById("status");
-      const openBtn = document.getElementById("openBtn");
-      const requestBox = document.getElementById("requestBox");
-      const btn = document.getElementById("searchBtn");
+      const vin = vinInput.value.trim().toUpperCase();
 
       if (vin.length !== 17) {
         status.innerHTML = "VIN must be 17 characters";
@@ -170,11 +180,12 @@
         return;
       }
 
-      btn.disabled = true;
-      btn.innerText = "Searching...";
+      searchBtn.disabled = true;
+      searchBtn.innerText = "Searching...";
 
       status.innerHTML = "Searching...";
       status.className = "status";
+
       openBtn.style.display = "none";
       requestBox.style.display = "none";
 
@@ -182,296 +193,83 @@
         const res = await fetch(`${API}/sticker/${vin}`);
         const data = await res.json();
 
-        if (data.success) {
+        if (data.success && data.url) {
           currentURL = data.url;
 
-          status.innerHTML = data.cached ? "Loaded from database ⚡" : "Sticker found";
-          status.className = "status success";
+          status.innerHTML = data.cached
+            ? "Loaded from database ⚡"
+            : "Sticker found";
 
+          status.className = "status success";
           openBtn.style.display = "block";
 
         } else {
-          status.innerHTML = "Sticker not found";
-          status.className = "status error";
-
-          requestBox.style.display = "block";
-          document.getElementById("requestVin").value = vin;
+          throw new Error("Not found");
         }
 
       } catch (err) {
-        status.innerHTML = "Error connecting to server";
+        status.innerHTML = "Sticker not found";
         status.className = "status error";
+
+        requestBox.style.display = "block";
+        document.getElementById("requestVin").value = vin;
       }
 
-      btn.disabled = false;
-      btn.innerText = "Search";
+      searchBtn.disabled = false;
+      searchBtn.innerText = "Search";
     }
 
     function openSticker() {
       if (!currentURL) return;
 
-      if (isIPhone()) {
-        window.location.href = currentURL;
+      // iPhone fix: force same-tab open
+      if (isIOS()) {
+        window.location.assign(currentURL);
       } else {
-        window.open(currentURL, "_blank");
+        const win = window.open();
+        if (win) {
+          win.location = currentURL;
+        } else {
+          // fallback if popup blocked
+          window.location.href = currentURL;
+        }
       }
     }
 
     async function submitRequest() {
       const vin = document.getElementById("requestVin").value.toUpperCase();
       const email = document.getElementById("emailInput").value;
-      const status = document.getElementById("status");
-      const requestBox = document.getElementById("requestBox");
 
-      await fetch(`${API}/request`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ vin, email })
-      });
-
-      status.innerHTML = "Request submitted. We'll email you when it's ready.";
-      status.className = "status success";
-      requestBox.style.display = "none";
-    }
-  </script>
-
-</body>
-</html><!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mopar Sticker Lookup</title>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: linear-gradient(to bottom, #eef2f7, #dfe5ee);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 420px;
-      padding: 24px;
-    }
-
-    .card {
-      background: white;
-      padding: 24px;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-      text-align: center;
-    }
-
-    .logo {
-      width: 44px;
-      height: 44px;
-      margin: 0 auto 10px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #ff6a00, #ff9f1c);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 700;
-    }
-
-    h1 {
-      margin: 6px 0;
-      font-size: 20px;
-    }
-
-    .subtitle {
-      color: #6b7280;
-      font-size: 14px;
-      margin-bottom: 20px;
-    }
-
-    input {
-      width: 100%;
-      padding: 14px;
-      margin-bottom: 12px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      font-size: 16px;
-      box-sizing: border-box;
-      text-transform: uppercase;
-    }
-
-    button {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .search-btn {
-      background: linear-gradient(to right, #ff4d4d, #ff9f1c);
-      color: white;
-      margin-bottom: 10px;
-    }
-
-    .open-btn {
-      background: #22c55e;
-      color: white;
-      margin-top: 10px;
-    }
-
-    .status {
-      margin-top: 10px;
-      font-size: 14px;
-    }
-
-    .success {
-      color: #16a34a;
-    }
-
-    .error {
-      color: #dc2626;
-    }
-
-    .request-box {
-      margin-top: 20px;
-    }
-
-    .footer {
-      text-align: center;
-      margin-top: 14px;
-      font-size: 12px;
-      color: #9ca3af;
-    }
-  </style>
-</head>
-
-<body>
-
-  <div class="container">
-    <div class="card">
-
-      <div class="logo">M</div>
-
-      <h1>Mopar Sticker Lookup</h1>
-      <div class="subtitle">Find your original Mopar window sticker instantly</div>
-
-      <input id="vinInput" maxlength="17" placeholder="Enter VIN (e.g. 2C3CDX...)" />
-      <button class="search-btn" onclick="searchVIN()">Search</button>
-
-      <div id="status" class="status"></div>
-
-      <button id="openBtn" class="open-btn" style="display:none;" onclick="openSticker()">
-        Open Sticker
-      </button>
-
-      <div id="requestBox" class="request-box" style="display:none;">
-        <div class="subtitle">Or submit your VIN and we’ll find it manually.</div>
-
-        <input id="requestVin" maxlength="17" placeholder="Enter VIN again" />
-        <input id="emailInput" placeholder="Enter your email" />
-
-        <button class="search-btn" onclick="submitRequest()">Request Sticker</button>
-      </div>
-
-    </div>
-
-    <div class="footer">
-      Fast · Free · Built for Mopar owners<br/>
-      Not affiliated with Dodge, Chrysler, Jeep, or Ram
-    </div>
-  </div>
-
-  <script>
-    const API = "https://mopar-backend.onrender.com";
-    let currentURL = null;
-
-    async function searchVIN() {
-      const vin = document.getElementById("vinInput").value.trim().toUpperCase();
-      const status = document.getElementById("status");
-      const openBtn = document.getElementById("openBtn");
-      const requestBox = document.getElementById("requestBox");
-      const btn = document.querySelector(".search-btn");
-
-      // VIN validation
-      if (vin.length !== 17) {
-        status.innerHTML = "VIN must be 17 characters";
+      if (!email) {
+        status.innerHTML = "Please enter an email";
         status.className = "status error";
         return;
       }
 
-      // Loading state
-      btn.disabled = true;
-      btn.innerText = "Searching...";
-
-      status.innerHTML = "Searching...";
-      status.className = "status";
-      openBtn.style.display = "none";
-      requestBox.style.display = "none";
+      requestBtn.disabled = true;
+      requestBtn.innerText = "Submitting...";
 
       try {
-        const res = await fetch(`${API}/sticker/${vin}`);
-        const data = await res.json();
+        await fetch(`${API}/request`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ vin, email })
+        });
 
-        if (data.success) {
-          currentURL = data.url;
+        status.innerHTML = "Request submitted. We'll email you.";
+        status.className = "status success";
 
-          status.innerHTML = data.cached ? "Loaded from database ⚡" : "Sticker found";
-          status.className = "status success";
+        requestBox.style.display = "none";
 
-          // Auto open
-          window.open(currentURL, "_blank");
-
-          openBtn.style.display = "block";
-
-        } else {
-          status.innerHTML = "Sticker not found";
-          status.className = "status error";
-
-          requestBox.style.display = "block";
-          document.getElementById("requestVin").value = vin;
-        }
-
-      } catch (err) {
-        status.innerHTML = "Error connecting to server";
+      } catch {
+        status.innerHTML = "Failed to submit request";
         status.className = "status error";
       }
 
-      // Reset button
-      btn.disabled = false;
-      btn.innerText = "Search";
-    }
-
-    function openSticker() {
-      if (currentURL) {
-        window.open(currentURL, "_blank");
-      }
-    }
-
-    async function submitRequest() {
-      const vin = document.getElementById("requestVin").value.toUpperCase();
-      const email = document.getElementById("emailInput").value;
-      const status = document.getElementById("status");
-      const requestBox = document.getElementById("requestBox");
-
-      await fetch(`${API}/request`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ vin, email })
-      });
-
-      status.innerHTML = "Request submitted. We'll email you when it's ready.";
-      status.className = "status success";
-      requestBox.style.display = "none";
+      requestBtn.disabled = false;
+      requestBtn.innerText = "Request Sticker";
     }
   </script>
 
