@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
 <title>Mopar Sticker Lookup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 * { box-sizing: border-box; }
@@ -45,7 +45,10 @@ body {
   font-weight: 700;
 }
 
-h1 { margin: 6px 0; font-size: 20px; }
+h1 {
+  margin: 6px 0;
+  font-size: 20px;
+}
 
 .subtitle {
   color: #6b7280;
@@ -110,90 +113,95 @@ button {
     <div class="logo">M</div>
 
     <h1>Mopar Sticker Lookup</h1>
-    <div class="subtitle">Find your window sticker</div>
+    <div class="subtitle">Find your original Mopar window sticker instantly</div>
 
-    <input id="vinInput" maxlength="17" placeholder="Enter VIN" />
-    <button id="searchBtn" class="search-btn">Search</button>
+    <input id="vinInput" maxlength="17" placeholder="Enter VIN (17 characters)" />
+
+    <button id="searchBtn" class="search-btn" onclick="searchVIN()">
+      Search
+    </button>
 
     <div id="status" class="status"></div>
 
-    <button id="openBtn" class="open-btn" style="display:none;">
+    <button id="openBtn" class="open-btn" style="display:none;" onclick="openSticker()">
       Open Sticker
     </button>
 
   </div>
 
   <div class="footer">
-    Built for Mopar owners
+    Fast · Free · Built for Mopar owners<br/>
+    Not affiliated with Dodge, Chrysler, Jeep, or Ram
   </div>
 </div>
 
 <script>
 const API = "https://mopar-backend.onrender.com";
 let currentURL = null;
+let isCached = false;
 
-const vinInput = document.getElementById("vinInput");
-const searchBtn = document.getElementById("searchBtn");
-const openBtn = document.getElementById("openBtn");
-const status = document.getElementById("status");
-
-function isIOS() {
+function isIPhone() {
   return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
-searchBtn.addEventListener("click", searchVIN);
-openBtn.addEventListener("click", openSticker);
-
 async function searchVIN() {
-  const vin = vinInput.value.trim().toUpperCase();
+  const vin = document.getElementById("vinInput").value.trim().toUpperCase();
+  const status = document.getElementById("status");
+  const btn = document.getElementById("searchBtn");
+  const openBtn = document.getElementById("openBtn");
 
   if (vin.length !== 17) {
-    status.innerHTML = "VIN must be 17 characters";
+    status.innerHTML = "Enter a valid 17-character VIN";
     status.className = "status error";
     return;
   }
 
-  status.innerHTML = "Searching...";
+  btn.disabled = true;
+  btn.innerText = "Searching...";
+
+  status.innerHTML = "Checking database...";
   status.className = "status";
+
   openBtn.style.display = "none";
 
   try {
     const res = await fetch(`${API}/sticker/${vin}`);
     const data = await res.json();
 
-    if (data.cached) {
+    if (data.success) {
       currentURL = data.url;
-      status.innerHTML = "Loaded from database ⚡";
-      status.className = "status success";
-      openBtn.style.display = "block";
+      isCached = data.cached || false;
 
-    } else if (data.fallback) {
-      currentURL = data.url;
-      status.innerHTML = "Opened from Dodge";
-      status.className = "status success";
-      openBtn.style.display = "block";
+      if (isCached) {
+        status.innerHTML = "⚡ Loaded instantly from database";
+      } else {
+        status.innerHTML = "Sticker found & saved";
+      }
 
-    } else if (data.success) {
-      currentURL = data.url;
-      status.innerHTML = "Sticker found";
       status.className = "status success";
       openBtn.style.display = "block";
 
     } else {
-      throw new Error();
+      status.innerHTML = "Sticker not found";
+      status.className = "status error";
     }
 
   } catch {
-    status.innerHTML = "Error finding sticker";
+    status.innerHTML = "Server error — try again";
     status.className = "status error";
   }
+
+  btn.disabled = false;
+  btn.innerText = "Search";
 }
 
 function openSticker() {
   if (!currentURL) return;
 
-  if (isIOS()) {
-    window.location = currentURL;
+  if (isIPhone()) {
+    // 🔥 Fix iPhone PDF issue
+    const viewer = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(currentURL)}`;
+    window.location.href = viewer;
   } else {
     window.open(currentURL, "_blank");
   }
