@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mopar Sticker Lookup</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(180deg, #f8fafc, #eef2ff);
+      color: #0f172a;
+    }
+
+    .wrapper {
+      max-width: 520px;
+      margin: 80px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 32px;
+      border-radius: 18px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+
+    .logo {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #ef4444, #f59e0b);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    .logo-text {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      font-size: 14px;
+      outline: none;
+      margin-top: 10px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #ef4444, #f59e0b);
+      color: white;
+    }
+
+    .success { background: #22c55e; color: white; }
+    .warning { background: #f59e0b; color: white; }
+
+    .status {
+      margin-top: 16px;
+      font-size: 14px;
+      color: #475569;
+    }
+
+    .section { margin-top: 16px; }
+
+    .note {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .spinner {
+      margin-top: 10px;
+      width: 24px;
+      height: 24px;
+      border: 3px solid #e2e8f0;
+      border-top: 3px solid #ef4444;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      display: none;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="wrapper">
+
+  <div class="card">
+
+    <div class="logo">
+      <div class="logo-icon">M</div>
+      <div class="logo-text">MoparStickerLookup</div>
+    </div>
+
+    <div class="subtitle">
+      Find your original Mopar window sticker instantly
+    </div>
+
+    <input id="vin" placeholder="Enter VIN (17 characters)">
+    <button id="searchBtn" class="primary" onclick="lookup()">Search</button>
+
+    <div class="spinner" id="spinner"></div>
+
+    <div id="status" class="status"></div>
+    <div id="actions"></div>
+
+  </div>
+
+  <div class="footer">
+    Fast • Free • Built for Mopar owners
+  </div>
+
+</div>
+
+<script>
+const API = "http://localhost:3000";
+
+document.getElementById("vin").addEventListener("keypress", function(e) {
+  if (e.key === "Enter") lookup();
+});
+
+async function lookup() {
+  const vin = document.getElementById("vin").value.trim();
+  const status = document.getElementById("status");
+  const actions = document.getElementById("actions");
+  const spinner = document.getElementById("spinner");
+  const btn = document.getElementById("searchBtn");
+
+  if (vin.length < 5) {
+    status.innerText = "Enter a valid VIN";
+    return;
+  }
+
+  spinner.style.display = "block";
+  btn.disabled = true;
+  status.innerText = "Searching...";
+  actions.innerHTML = "";
+
+  const res = await fetch(`${API}/sticker/${vin}`);
+  const data = await res.json();
+
+  spinner.style.display = "none";
+  btn.disabled = false;
+
+  if (data.success) {
+    status.innerText = data.cached
+      ? "Loaded instantly from database ⚡"
+      : "Sticker found";
+
+    actions.innerHTML = `
+      <button class="success" onclick="openSticker('${data.url}')">
+        Open Sticker
+      </button>
+      <div class="note">Opens in a new tab</div>
+    `;
+
+  } else {
+    status.innerText = "Sticker not found";
+
+    actions.innerHTML = `
+      <div class="section">
+        <div class="note">
+          Or submit your VIN and we’ll find it manually.
+        </div>
+
+        <input id="requestVin" value="${vin}" placeholder="Enter VIN">
+        <input id="email" placeholder="Enter your email">
+
+        <button class="warning" onclick="requestSticker()">
+          Request Sticker
+        </button>
+      </div>
+    `;
+  }
+}
+
+function openSticker(url) {
+  window.open(url, "_blank");
+}
+
+function requestSticker() {
+  const vin = document.getElementById("requestVin").value;
+  const email = document.getElementById("email").value;
+
+  if (!vin || !email) {
+    alert("Fill out both fields");
+    return;
+  }
+
+  fetch(`${API}/request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ vin, email })
+  });
+
+  alert("Request submitted. We’ll find your sticker 🚀");
+}
+</script>
+
+</body>
+</html>
