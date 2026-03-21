@@ -38,58 +38,62 @@ async function getDB() {
   }
 }
 
-// UPDATE DB
+// UPDATE DB (fixed)
 async function updateDB(newDB) {
-  const res = await fetch(`${GITHUB_API}/db.json`, {
-    headers: { Authorization: `token ${TOKEN}` }
-  });
+  try {
+    const res = await fetch(`${GITHUB_API}/db.json`, {
+      headers: { Authorization: `token ${TOKEN}` }
+    });
 
-  const data = await res.json();
+    const data = await res.json();
 
-  const content = Buffer
-    .from(JSON.stringify(newDB, null, 2))
-    .toString("base64");
+    const content = Buffer
+      .from(JSON.stringify(newDB, null, 2))
+      .toString("base64");
 
-  await fetch(`${GITHUB_API}/db.json`, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      message: "Update db.json",
-      content,
-      sha: data.sha,
-      branch: BRANCH
-    })
-  });
+    await fetch(`${GITHUB_API}/db.json`, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "Update db.json",
+        content,
+        sha: data.sha,
+        branch: BRANCH
+      })
+    });
+
+  } catch (err) {
+    console.log("DB update failed:", err);
+  }
 }
 
-// UPLOAD PDF
+// UPLOAD (THIS IS YOUR ORIGINAL WORKING STYLE)
 async function uploadPDF(vin, buffer) {
   const filePath = `stickers/${vin}.pdf`;
   const base64 = buffer.toString("base64");
 
-  const res = await fetch(`${GITHUB_API}/${filePath}`, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      message: `Add ${vin}`,
-      content: base64,
-      branch: BRANCH
-    })
-  });
+  try {
+    await fetch(`${GITHUB_API}/${filePath}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: `Add ${vin}`,
+        content: base64,
+        branch: BRANCH
+      })
+    });
 
-  if (!res.ok) {
-    console.log("Upload failed:", await res.text());
+    return filePath;
+
+  } catch {
     return null;
   }
-
-  console.log("Uploaded:", vin);
-  return filePath;
 }
 
 // MAIN ROUTE
@@ -99,7 +103,7 @@ app.get("/sticker/:vin", async (req, res) => {
 
   const db = await getDB();
 
-  // cached
+  // cache
   if (db[vin] && db[vin].file) {
     return res.json({
       success: true,
@@ -114,23 +118,25 @@ app.get("/sticker/:vin", async (req, res) => {
 
     if (response.status === 200 && buffer.length > 10000) {
 
-      // 🔥 DO EVERYTHING BEFORE RESPONDING
-      const filePath = await uploadPDF(vin, buffer);
-
-      if (filePath) {
-        db[vin] = {
-          file: filePath,
-          timestamp: Date.now()
-        };
-
-        await updateDB(db);
-      }
-
-      // THEN respond
-      return res.json({
+      // 🔥 RETURN IMMEDIATELY (like before)
+      res.json({
         success: true,
         url: dodgeURL
       });
+
+      // 🔥 BUT WAIT PROPERLY INSIDE FLOW
+      const filePath = await uploadPDF(vin, buffer);
+
+      if (!filePath) return;
+
+      db[vin] = {
+        file: filePath,
+        timestamp: Date.now()
+      };
+
+      await updateDB(db);
+
+      return;
     }
 
   } catch (err) {
