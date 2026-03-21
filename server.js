@@ -20,46 +20,59 @@ function getDodgeURL(vin) {
   return `https://www.dodge.com/hostc/windowSticker.do?vin=${vin}`;
 }
 
-// 🔥 SAFE DB FETCH (never crashes)
+// 🔥 SAFE DB FETCH
 async function getDB() {
   try {
     const res = await fetch(`${GITHUB_API}/db.json`, {
       headers: { Authorization: `token ${TOKEN}` }
     });
 
-    if (!res.ok) return { db: {}, sha: null };
+    if (!res.ok) return {};
 
     const data = await res.json();
     const content = Buffer.from(data.content, "base64").toString("utf-8");
 
-    return {
-      db: JSON.parse(content),
-      sha: data.sha
-    };
+    return JSON.parse(content);
+
   } catch {
-    return { db: {}, sha: null };
+    return {};
   }
 }
 
-// 🔥 UPDATE DB
-async function updateDB(newDB, sha) {
-  if (!sha) return;
+// 🔥 ALWAYS UPDATE DB WITH FRESH SHA
+async function updateDB(newDB) {
+  try {
+    const res = await fetch(`${GITHUB_API}/db.json`, {
+      headers: {
+        Authorization: `token ${TOKEN}`
+      }
+    });
 
-  const content = Buffer.from(JSON.stringify(newDB, null, 2)).toString("base64");
+    const data = await res.json();
 
-  await fetch(`${GITHUB_API}/db.json`, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      message: "Update db.json",
-      content,
-      sha,
-      branch: BRANCH
-    })
-  });
+    const content = Buffer
+      .from(JSON.stringify(newDB, null, 2))
+      .toString("base64");
+
+    await fetch(`${GITHUB_API}/db.json`, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "Update db.json",
+        content,
+        sha: data.sha,
+        branch: BRANCH
+      })
+    });
+
+    console.log("DB updated");
+
+  } catch (err) {
+    console.log("DB update failed:", err);
+  }
 }
 
 // 🔥 UPLOAD PDF
@@ -67,30 +80,38 @@ async function uploadPDF(vin, buffer) {
   const filePath = `stickers/${vin}.pdf`;
   const base64 = buffer.toString("base64");
 
-  await fetch(`${GITHUB_API}/${filePath}`, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      message: `Add ${vin}`,
-      content: base64,
-      branch: BRANCH
-    })
-  });
+  try {
+    await fetch(`${GITHUB_API}/${filePath}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: `Add ${vin}`,
+        content: base64,
+        branch: BRANCH
+      })
+    });
 
-  return filePath;
+    console.log("Uploaded:", vin);
+
+    return filePath;
+
+  } catch (err) {
+    console.log("Upload failed:", err);
+    return null;
+  }
 }
 
-// 🔥 MAIN ROUTE (CANNOT FAIL NOW)
+// 🔥 MAIN ROUTE
 app.get("/sticker/:vin", async (req, res) => {
   const vin = req.params.vin.toUpperCase();
   const dodgeURL = getDodgeURL(vin);
 
-  // always try DB (but don't trust it blindly)
-  const { db, sha } = await getDB();
+  const db = await getDB();
 
+  // ✅ if already cached
   if (db[vin] && db[vin].file) {
     return res.json({
       success: true,
@@ -105,36 +126,40 @@ app.get("/sticker/:vin", async (req, res) => {
 
     if (response.status === 200) {
 
-      // 🔥 ALWAYS RETURN DODGE (no more errors)
+      // 🔥 ALWAYS RETURN DODGE
       res.json({
         success: true,
         source: "dodge",
         url: dodgeURL
       });
 
-      // background save
+      // 🔥 BACKGROUND SAVE
       if (buffer.length > 10000) {
         (async () => {
           const filePath = await uploadPDF(vin, buffer);
+
+          if (!filePath) return;
 
           db[vin] = {
             file: filePath,
             timestamp: Date.now()
           };
 
-          await updateDB(db, sha);
+          await updateDB(db);
         })();
       }
 
       return;
     }
 
-  } catch {}
+  } catch (err) {
+    console.log("Dodge error:", err);
+  }
 
-  // 🔥 LAST RESORT (still return dodge)
+  // 🔥 LAST RESORT
   return res.json({
     success: true,
-    source: "fallback",
+    fallback: true,
     url: dodgeURL
   });
 });
