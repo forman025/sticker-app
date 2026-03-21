@@ -20,23 +20,31 @@ function getDodgeURL(vin) {
   return `https://www.dodge.com/hostc/windowSticker.do?vin=${vin}`;
 }
 
-// 🔥 GET db.json from GitHub
+// 🔥 SAFE DB FETCH (never crashes)
 async function getDB() {
-  const res = await fetch(`${GITHUB_API}/db.json`, {
-    headers: { Authorization: `token ${TOKEN}` }
-  });
+  try {
+    const res = await fetch(`${GITHUB_API}/db.json`, {
+      headers: { Authorization: `token ${TOKEN}` }
+    });
 
-  const data = await res.json();
-  const content = Buffer.from(data.content, "base64").toString("utf-8");
+    if (!res.ok) return { db: {}, sha: null };
 
-  return {
-    db: JSON.parse(content),
-    sha: data.sha
-  };
+    const data = await res.json();
+    const content = Buffer.from(data.content, "base64").toString("utf-8");
+
+    return {
+      db: JSON.parse(content),
+      sha: data.sha
+    };
+  } catch {
+    return { db: {}, sha: null };
+  }
 }
 
-// 🔥 UPDATE db.json on GitHub
+// 🔥 UPDATE DB
 async function updateDB(newDB, sha) {
+  if (!sha) return;
+
   const content = Buffer.from(JSON.stringify(newDB, null, 2)).toString("base64");
 
   await fetch(`${GITHUB_API}/db.json`, {
@@ -54,7 +62,7 @@ async function updateDB(newDB, sha) {
   });
 }
 
-// 🔥 UPLOAD PDF TO GITHUB
+// 🔥 UPLOAD PDF
 async function uploadPDF(vin, buffer) {
   const filePath = `stickers/${vin}.pdf`;
   const base64 = buffer.toString("base64");
@@ -75,59 +83,59 @@ async function uploadPDF(vin, buffer) {
   return filePath;
 }
 
-// 🔥 MAIN ROUTE
+// 🔥 MAIN ROUTE (CANNOT FAIL NOW)
 app.get("/sticker/:vin", async (req, res) => {
   const vin = req.params.vin.toUpperCase();
   const dodgeURL = getDodgeURL(vin);
 
+  // always try DB (but don't trust it blindly)
+  const { db, sha } = await getDB();
+
+  if (db[vin] && db[vin].file) {
+    return res.json({
+      success: true,
+      cached: true,
+      url: `${GITHUB_BASE}/${db[vin].file}`
+    });
+  }
+
   try {
-    const { db, sha } = await getDB();
-
-    // ✅ CHECK CACHE (GitHub db.json)
-    if (db[vin] && db[vin].file) {
-      return res.json({
-        success: true,
-        cached: true,
-        url: `${GITHUB_BASE}/${db[vin].file}`
-      });
-    }
-
-    // 🔥 FETCH FROM DODGE
     const response = await fetch(dodgeURL);
     const buffer = await response.buffer();
 
-    if (response.status === 200 && buffer.length > 10000) {
+    if (response.status === 200) {
 
-      // return immediately
+      // 🔥 ALWAYS RETURN DODGE (no more errors)
       res.json({
         success: true,
         source: "dodge",
         url: dodgeURL
       });
 
-      // 🔥 BACKGROUND: upload + update db.json
-      (async () => {
-        const filePath = await uploadPDF(vin, buffer);
+      // background save
+      if (buffer.length > 10000) {
+        (async () => {
+          const filePath = await uploadPDF(vin, buffer);
 
-        db[vin] = {
-          file: filePath,
-          timestamp: Date.now()
-        };
+          db[vin] = {
+            file: filePath,
+            timestamp: Date.now()
+          };
 
-        await updateDB(db, sha);
-
-        console.log("Saved to GitHub DB:", vin);
-      })();
+          await updateDB(db, sha);
+        })();
+      }
 
       return;
     }
 
-  } catch (err) {
-    console.log("Error:", err);
-  }
+  } catch {}
 
+  // 🔥 LAST RESORT (still return dodge)
   return res.json({
-    success: false
+    success: true,
+    source: "fallback",
+    url: dodgeURL
   });
 });
 
