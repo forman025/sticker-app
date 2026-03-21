@@ -1,246 +1,239 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Mopar Sticker Lookup</title>
 
   <style>
-    * { box-sizing: border-box; }
-
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: linear-gradient(180deg, #f8fafc, #eef2ff);
-      color: #0f172a;
+      background: linear-gradient(to bottom, #eef2f7, #dfe5ee);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
     }
 
-    .wrapper {
-      max-width: 520px;
-      margin: 80px auto;
-      padding: 0 20px;
+    .container {
+      width: 100%;
+      max-width: 420px;
+      padding: 24px;
     }
 
     .card {
       background: white;
-      padding: 32px;
-      border-radius: 18px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
       text-align: center;
     }
 
     .logo {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-
-    .logo-icon {
-      width: 36px;
-      height: 36px;
+      width: 44px;
+      height: 44px;
+      margin: 0 auto 10px;
       border-radius: 10px;
-      background: linear-gradient(135deg, #ef4444, #f59e0b);
+      background: linear-gradient(135deg, #ff6a00, #ff9f1c);
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
-      font-weight: bold;
+      font-weight: 700;
     }
 
-    .logo-text {
+    h1 {
+      margin: 6px 0;
       font-size: 20px;
-      font-weight: 600;
     }
 
     .subtitle {
+      color: #6b7280;
       font-size: 14px;
-      color: #64748b;
       margin-bottom: 20px;
     }
 
     input {
       width: 100%;
       padding: 14px;
-      border-radius: 12px;
-      border: 1px solid #e2e8f0;
-      font-size: 14px;
-      outline: none;
-      margin-top: 10px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+      box-sizing: border-box;
+      text-transform: uppercase;
     }
 
     button {
       width: 100%;
       padding: 14px;
-      border-radius: 12px;
       border: none;
+      border-radius: 10px;
+      font-size: 16px;
       font-weight: 600;
       cursor: pointer;
+    }
+
+    .search-btn {
+      background: linear-gradient(to right, #ff4d4d, #ff9f1c);
+      color: white;
+      margin-bottom: 10px;
+    }
+
+    .open-btn {
+      background: #22c55e;
+      color: white;
       margin-top: 10px;
     }
-
-    .primary {
-      background: linear-gradient(135deg, #ef4444, #f59e0b);
-      color: white;
-    }
-
-    .success { background: #22c55e; color: white; }
-    .warning { background: #f59e0b; color: white; }
 
     .status {
-      margin-top: 16px;
-      font-size: 14px;
-      color: #475569;
-    }
-
-    .section { margin-top: 16px; }
-
-    .note {
-      font-size: 13px;
-      color: #64748b;
-      margin-top: 6px;
-      line-height: 1.4;
-    }
-
-    .spinner {
       margin-top: 10px;
-      width: 24px;
-      height: 24px;
-      border: 3px solid #e2e8f0;
-      border-top: 3px solid #ef4444;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      display: none;
-      margin-left: auto;
-      margin-right: auto;
+      font-size: 14px;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    .success {
+      color: #16a34a;
+    }
+
+    .error {
+      color: #dc2626;
+    }
+
+    .request-box {
+      margin-top: 20px;
     }
 
     .footer {
       text-align: center;
-      margin-top: 20px;
+      margin-top: 14px;
       font-size: 12px;
-      color: #94a3b8;
+      color: #9ca3af;
     }
   </style>
 </head>
 
 <body>
 
-<div class="wrapper">
+  <div class="container">
+    <div class="card">
 
-  <div class="card">
+      <div class="logo">M</div>
 
-    <div class="logo">
-      <div class="logo-icon">M</div>
-      <div class="logo-text">MoparStickerLookup</div>
-    </div>
+      <h1>Mopar Sticker Lookup</h1>
+      <div class="subtitle">Find your original Mopar window sticker instantly</div>
 
-    <div class="subtitle">
-      Find your original Mopar window sticker instantly
-    </div>
+      <input id="vinInput" maxlength="17" placeholder="Enter VIN (e.g. 2C3CDX...)" />
+      <button class="search-btn" onclick="searchVIN()">Search</button>
 
-    <input id="vin" placeholder="Enter VIN (17 characters)">
-    <button id="searchBtn" class="primary" onclick="lookup()">Search</button>
+      <div id="status" class="status"></div>
 
-    <div class="spinner" id="spinner"></div>
-
-    <div id="status" class="status"></div>
-    <div id="actions"></div>
-
-  </div>
-
-  <div class="footer">
-    Fast • Free • Built for Mopar owners
-  </div>
-
-</div>
-
-<script>
-const API = "https://mopar-backend.onrender.com";
-
-document.getElementById("vin").addEventListener("keypress", function(e) {
-  if (e.key === "Enter") lookup();
-});
-
-async function lookup() {
-  const vin = document.getElementById("vin").value.trim();
-  const status = document.getElementById("status");
-  const actions = document.getElementById("actions");
-  const spinner = document.getElementById("spinner");
-  const btn = document.getElementById("searchBtn");
-
-  if (vin.length < 5) {
-    status.innerText = "Enter a valid VIN";
-    return;
-  }
-
-  spinner.style.display = "block";
-  btn.disabled = true;
-  status.innerText = "Searching...";
-  actions.innerHTML = "";
-
-  const res = await fetch(`${API}/sticker/${vin}`);
-  const data = await res.json();
-
-  spinner.style.display = "none";
-  btn.disabled = false;
-
-  if (data.success) {
-    status.innerText = data.cached
-      ? "Loaded instantly from database ⚡"
-      : "Sticker found";
-
-    actions.innerHTML = `
-      <button class="success" onclick="openSticker('${data.url}')">
+      <button id="openBtn" class="open-btn" style="display:none;" onclick="openSticker()">
         Open Sticker
       </button>
-      <div class="note">Opens in a new tab</div>
-    `;
 
-  } else {
-    status.innerText = "Sticker not found";
+      <div id="requestBox" class="request-box" style="display:none;">
+        <div class="subtitle">Or submit your VIN and we’ll find it manually.</div>
 
-    actions.innerHTML = `
-      <div class="section">
-        <div class="note">
-          Or submit your VIN and we’ll find it manually.
-        </div>
+        <input id="requestVin" maxlength="17" placeholder="Enter VIN again" />
+        <input id="emailInput" placeholder="Enter your email" />
 
-        <input id="requestVin" value="${vin}" placeholder="Enter VIN">
-        <input id="email" placeholder="Enter your email">
-
-        <button class="warning" onclick="requestSticker()">
-          Request Sticker
-        </button>
+        <button class="search-btn" onclick="submitRequest()">Request Sticker</button>
       </div>
-    `;
-  }
-}
 
-function openSticker(url) {
-  window.open(url, "_blank");
-}
+    </div>
 
-function requestSticker() {
-  const vin = document.getElementById("requestVin").value;
-  const email = document.getElementById("email").value;
+    <div class="footer">
+      Fast · Free · Built for Mopar owners<br/>
+      Not affiliated with Dodge, Chrysler, Jeep, or Ram
+    </div>
+  </div>
 
-  if (!vin || !email) {
-    alert("Fill out both fields");
-    return;
-  }
+  <script>
+    const API = "https://mopar-backend.onrender.com";
+    let currentURL = null;
 
-  fetch(`${API}/request`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ vin, email })
-  });
+    async function searchVIN() {
+      const vin = document.getElementById("vinInput").value.trim().toUpperCase();
+      const status = document.getElementById("status");
+      const openBtn = document.getElementById("openBtn");
+      const requestBox = document.getElementById("requestBox");
+      const btn = document.querySelector(".search-btn");
 
-  alert("Request submitted. We’ll find your sticker 🚀");
-}
-</script>
+      // VIN validation
+      if (vin.length !== 17) {
+        status.innerHTML = "VIN must be 17 characters";
+        status.className = "status error";
+        return;
+      }
+
+      // Loading state
+      btn.disabled = true;
+      btn.innerText = "Searching...";
+
+      status.innerHTML = "Searching...";
+      status.className = "status";
+      openBtn.style.display = "none";
+      requestBox.style.display = "none";
+
+      try {
+        const res = await fetch(`${API}/sticker/${vin}`);
+        const data = await res.json();
+
+        if (data.success) {
+          currentURL = data.url;
+
+          status.innerHTML = data.cached ? "Loaded from database ⚡" : "Sticker found";
+          status.className = "status success";
+
+          // Auto open
+          window.open(currentURL, "_blank");
+
+          openBtn.style.display = "block";
+
+        } else {
+          status.innerHTML = "Sticker not found";
+          status.className = "status error";
+
+          requestBox.style.display = "block";
+          document.getElementById("requestVin").value = vin;
+        }
+
+      } catch (err) {
+        status.innerHTML = "Error connecting to server";
+        status.className = "status error";
+      }
+
+      // Reset button
+      btn.disabled = false;
+      btn.innerText = "Search";
+    }
+
+    function openSticker() {
+      if (currentURL) {
+        window.open(currentURL, "_blank");
+      }
+    }
+
+    async function submitRequest() {
+      const vin = document.getElementById("requestVin").value.toUpperCase();
+      const email = document.getElementById("emailInput").value;
+      const status = document.getElementById("status");
+      const requestBox = document.getElementById("requestBox");
+
+      await fetch(`${API}/request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ vin, email })
+      });
+
+      status.innerHTML = "Request submitted. We'll email you when it's ready.";
+      status.className = "status success";
+      requestBox.style.display = "none";
+    }
+  </script>
 
 </body>
 </html>
