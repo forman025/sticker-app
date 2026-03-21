@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json());
 app.use(require("cors")());
 
-// 🔥 REQUEST LOGGER (VERY IMPORTANT)
+// 🔥 REQUEST LOGGER
 app.use((req, res, next) => {
   console.log("REQUEST:", req.method, req.url);
   next();
@@ -146,10 +146,15 @@ app.get("/sticker/:vin", async (req, res) => {
   }
 
   try {
-    const response = await fetch(dodgeURL);
+    const response = await fetch(dodgeURL, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+        "Accept": "application/pdf"
+      }
+    });
+
     const buffer = await response.buffer();
 
-    // 🔥 FIXED: removed size restriction
     if (response.status === 200) {
 
       console.log("DODGE SUCCESS");
