@@ -9,8 +9,8 @@ app.use(require("cors")());
 
 const PORT = process.env.PORT || 3000;
 
-// 🔥 IMPORTANT: use deployed URL automatically
-const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+// 🔥 YOUR GITHUB REPO (change if needed)
+const GITHUB_BASE = "https://raw.githubusercontent.com/forman025/sticker-app/main";
 
 const DB_FILE = "./db.json";
 const REQUESTS_FILE = "./requests.json";
@@ -18,20 +18,26 @@ const STICKER_DIR = path.join(__dirname, "stickers");
 
 let searchCount = 0;
 
+// ensure folder exists (local dev only)
 if (!fs.existsSync(STICKER_DIR)) {
   fs.mkdirSync(STICKER_DIR);
 }
 
+// load DB
 let db = {};
 if (fs.existsSync(DB_FILE)) {
-  db = JSON.parse(fs.readFileSync(DB_FILE));
+  try {
+    db = JSON.parse(fs.readFileSync(DB_FILE));
+  } catch {
+    db = {};
+  }
 }
 
 function saveDB() {
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
 
-// serve PDFs
+// serve locally (still useful for dev)
 app.use("/stickers", express.static(STICKER_DIR));
 
 function getDodgeURL(vin) {
@@ -43,12 +49,12 @@ app.get("/sticker/:vin", async (req, res) => {
 
   const vin = req.params.vin.toUpperCase();
 
-  // CACHE
+  // ✅ CACHE (use GitHub URL)
   if (db[vin] && db[vin].file) {
     return res.json({
       success: true,
       cached: true,
-      url: `${BASE_URL}/${db[vin].file}`
+      url: `${GITHUB_BASE}/${db[vin].file}`
     });
   }
 
@@ -64,10 +70,12 @@ app.get("/sticker/:vin", async (req, res) => {
 
     const buffer = await response.buffer();
 
+    // valid PDF check
     if (response.status === 200 && buffer.length > 10000) {
       const filename = `${vin}.pdf`;
       const fullPath = path.join(STICKER_DIR, filename);
 
+      // save locally (for you to upload later if you want)
       fs.writeFileSync(fullPath, buffer);
 
       db[vin] = {
@@ -80,7 +88,7 @@ app.get("/sticker/:vin", async (req, res) => {
       return res.json({
         success: true,
         cached: false,
-        url: `${BASE_URL}/stickers/${filename}`
+        url: `${GITHUB_BASE}/stickers/${filename}`
       });
     }
 
@@ -98,7 +106,11 @@ app.post("/request", (req, res) => {
 
   let requests = [];
   if (fs.existsSync(REQUESTS_FILE)) {
-    requests = JSON.parse(fs.readFileSync(REQUESTS_FILE));
+    try {
+      requests = JSON.parse(fs.readFileSync(REQUESTS_FILE));
+    } catch {
+      requests = [];
+    }
   }
 
   requests.push({
@@ -114,6 +126,10 @@ app.post("/request", (req, res) => {
 
 app.get("/stats", (req, res) => {
   res.json({ searches: searchCount });
+});
+
+app.get("/", (req, res) => {
+  res.send("Mopar Sticker API running");
 });
 
 app.listen(PORT, () => {
