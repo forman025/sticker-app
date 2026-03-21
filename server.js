@@ -9,7 +9,6 @@ app.use(require("cors")());
 
 const PORT = process.env.PORT || 3000;
 
-// 🔥 YOUR GITHUB REPO (change if needed)
 const GITHUB_BASE = "https://raw.githubusercontent.com/forman025/sticker-app/main";
 
 const DB_FILE = "./db.json";
@@ -18,12 +17,10 @@ const STICKER_DIR = path.join(__dirname, "stickers");
 
 let searchCount = 0;
 
-// ensure folder exists (local dev only)
 if (!fs.existsSync(STICKER_DIR)) {
   fs.mkdirSync(STICKER_DIR);
 }
 
-// load DB
 let db = {};
 if (fs.existsSync(DB_FILE)) {
   try {
@@ -37,7 +34,6 @@ function saveDB() {
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
 
-// serve locally (still useful for dev)
 app.use("/stickers", express.static(STICKER_DIR));
 
 function getDodgeURL(vin) {
@@ -49,7 +45,7 @@ app.get("/sticker/:vin", async (req, res) => {
 
   const vin = req.params.vin.toUpperCase();
 
-  // ✅ CACHE (use GitHub URL)
+  // ✅ CACHE
   if (db[vin] && db[vin].file) {
     return res.json({
       success: true,
@@ -58,10 +54,10 @@ app.get("/sticker/:vin", async (req, res) => {
     });
   }
 
-  try {
-    const url = getDodgeURL(vin);
+  const dodgeURL = getDodgeURL(vin);
 
-    const response = await fetch(url, {
+  try {
+    const response = await fetch(dodgeURL, {
       headers: {
         "User-Agent": "Mozilla/5.0",
         "Accept": "application/pdf"
@@ -70,12 +66,11 @@ app.get("/sticker/:vin", async (req, res) => {
 
     const buffer = await response.buffer();
 
-    // valid PDF check
+    // ✅ ONLY SAVE REAL PDFs
     if (response.status === 200 && buffer.length > 10000) {
       const filename = `${vin}.pdf`;
       const fullPath = path.join(STICKER_DIR, filename);
 
-      // save locally (for you to upload later if you want)
       fs.writeFileSync(fullPath, buffer);
 
       db[vin] = {
@@ -96,8 +91,12 @@ app.get("/sticker/:vin", async (req, res) => {
     console.log(err);
   }
 
+  // ❌ DO NOT SAVE — JUST FALLBACK
   return res.json({
-    success: false
+    success: true,
+    cached: false,
+    fallback: true,
+    url: dodgeURL
   });
 });
 
