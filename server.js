@@ -1,9 +1,7 @@
-console.log("FORCE NEW DEPLOY");
-
-console.log("NEW CODE RUNNING");
-
 const express = require("express");
 const fetch = require("node-fetch");
+
+console.log("NEW CODE RUNNING");
 
 const app = express();
 app.use(express.json());
@@ -31,17 +29,13 @@ async function getDB() {
       headers: { Authorization: `token ${TOKEN}` }
     });
 
-    if (!res.ok) {
-      console.log("DB FETCH FAILED:", res.status);
-      return {};
-    }
+    if (!res.ok) return {};
 
     const data = await res.json();
     const content = Buffer.from(data.content, "base64").toString("utf-8");
 
     return JSON.parse(content);
-  } catch (err) {
-    console.log("DB ERROR:", err);
+  } catch {
     return {};
   }
 }
@@ -74,14 +68,13 @@ async function updateDB(newDB) {
     });
 
     console.log("DB UPDATE STATUS:", update.status);
-    console.log(await update.text());
 
   } catch (err) {
     console.log("DB UPDATE ERROR:", err);
   }
 }
 
-// UPLOAD PDF
+// 🔥 FIXED UPLOAD (handles existing files)
 async function uploadPDF(vin, buffer) {
   console.log("TOKEN:", TOKEN ? "exists" : "missing");
 
@@ -89,6 +82,20 @@ async function uploadPDF(vin, buffer) {
   const base64 = buffer.toString("base64");
 
   try {
+    // check if file exists
+    const check = await fetch(`${GITHUB_API}/${filePath}`, {
+      headers: {
+        Authorization: `token ${TOKEN}`
+      }
+    });
+
+    let sha = null;
+
+    if (check.status === 200) {
+      const data = await check.json();
+      sha = data.sha;
+    }
+
     const res = await fetch(`${GITHUB_API}/${filePath}`, {
       method: "PUT",
       headers: {
@@ -98,14 +105,17 @@ async function uploadPDF(vin, buffer) {
       body: JSON.stringify({
         message: `Add ${vin}`,
         content: base64,
-        branch: BRANCH
+        branch: BRANCH,
+        ...(sha && { sha })
       })
     });
 
     console.log("UPLOAD STATUS:", res.status);
-    console.log(await res.text());
 
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.log(await res.text());
+      return null;
+    }
 
     return filePath;
 
@@ -122,6 +132,7 @@ app.get("/sticker/:vin", async (req, res) => {
 
   const db = await getDB();
 
+  // cache
   if (db[vin] && db[vin].file) {
     return res.json({
       success: true,
