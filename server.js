@@ -24,9 +24,7 @@ function getDodgeURL(vin) {
 async function getDB() {
   try {
     const res = await fetch(`${GITHUB_API}/db.json`, {
-      headers: {
-        Authorization: `token ${TOKEN}`
-      }
+      headers: { Authorization: `token ${TOKEN}` }
     });
 
     if (!res.ok) return {};
@@ -42,71 +40,56 @@ async function getDB() {
 
 // UPDATE DB
 async function updateDB(newDB) {
-  try {
-    const res = await fetch(`${GITHUB_API}/db.json`, {
-      headers: {
-        Authorization: `token ${TOKEN}`
-      }
-    });
+  const res = await fetch(`${GITHUB_API}/db.json`, {
+    headers: { Authorization: `token ${TOKEN}` }
+  });
 
-    const data = await res.json();
+  const data = await res.json();
 
-    const content = Buffer
-      .from(JSON.stringify(newDB, null, 2))
-      .toString("base64");
+  const content = Buffer
+    .from(JSON.stringify(newDB, null, 2))
+    .toString("base64");
 
-    await fetch(`${GITHUB_API}/db.json`, {
-      method: "PUT",
-      headers: {
-        Authorization: `token ${TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: "Update db.json",
-        content,
-        sha: data.sha,
-        branch: BRANCH
-      })
-    });
-
-    console.log("DB updated");
-
-  } catch (err) {
-    console.log("DB update failed:", err);
-  }
+  await fetch(`${GITHUB_API}/db.json`, {
+    method: "PUT",
+    headers: {
+      Authorization: `token ${TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: "Update db.json",
+      content,
+      sha: data.sha,
+      branch: BRANCH
+    })
+  });
 }
 
-// UPLOAD PDF (WORKING VERSION)
+// UPLOAD PDF
 async function uploadPDF(vin, buffer) {
   const filePath = `stickers/${vin}.pdf`;
   const base64 = buffer.toString("base64");
 
-  try {
-    const res = await fetch(`${GITHUB_API}/${filePath}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `token ${TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: `Add ${vin}`,
-        content: base64,
-        branch: BRANCH
-      })
-    });
+  const res = await fetch(`${GITHUB_API}/${filePath}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `token ${TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: `Add ${vin}`,
+      content: base64,
+      branch: BRANCH
+    })
+  });
 
-    if (!res.ok) {
-      console.log("Upload failed:", await res.text());
-      return null;
-    }
-
-    console.log("Uploaded:", vin);
-    return filePath;
-
-  } catch (err) {
-    console.log("Upload error:", err);
+  if (!res.ok) {
+    console.log("Upload failed:", await res.text());
     return null;
   }
+
+  console.log("Uploaded:", vin);
+  return filePath;
 }
 
 // MAIN ROUTE
@@ -116,6 +99,7 @@ app.get("/sticker/:vin", async (req, res) => {
 
   const db = await getDB();
 
+  // cached
   if (db[vin] && db[vin].file) {
     return res.json({
       success: true,
@@ -128,30 +112,25 @@ app.get("/sticker/:vin", async (req, res) => {
     const response = await fetch(dodgeURL);
     const buffer = await response.buffer();
 
-    if (response.status === 200) {
+    if (response.status === 200 && buffer.length > 10000) {
 
-      // return Dodge immediately
-      res.json({
+      // 🔥 DO EVERYTHING BEFORE RESPONDING
+      const filePath = await uploadPDF(vin, buffer);
+
+      if (filePath) {
+        db[vin] = {
+          file: filePath,
+          timestamp: Date.now()
+        };
+
+        await updateDB(db);
+      }
+
+      // THEN respond
+      return res.json({
         success: true,
         url: dodgeURL
       });
-
-      // background save
-      if (buffer.length > 10000) {
-        (async () => {
-          const filePath = await uploadPDF(vin, buffer);
-          if (!filePath) return;
-
-          db[vin] = {
-            file: filePath,
-            timestamp: Date.now()
-          };
-
-          await updateDB(db);
-        })();
-      }
-
-      return;
     }
 
   } catch (err) {
