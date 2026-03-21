@@ -9,6 +9,9 @@ app.use(require("cors")());
 
 const PORT = process.env.PORT || 3000;
 
+// 🔥 IMPORTANT: use deployed URL automatically
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+
 const DB_FILE = "./db.json";
 const REQUESTS_FILE = "./requests.json";
 const STICKER_DIR = path.join(__dirname, "stickers");
@@ -45,7 +48,7 @@ app.get("/sticker/:vin", async (req, res) => {
     return res.json({
       success: true,
       cached: true,
-      url: `http://localhost:${PORT}/${db[vin].file}`
+      url: `${BASE_URL}/${db[vin].file}`
     });
   }
 
@@ -77,7 +80,7 @@ app.get("/sticker/:vin", async (req, res) => {
       return res.json({
         success: true,
         cached: false,
-        url: `http://localhost:${PORT}/stickers/${filename}`
+        url: `${BASE_URL}/stickers/${filename}`
       });
     }
 
@@ -86,11 +89,7 @@ app.get("/sticker/:vin", async (req, res) => {
   }
 
   return res.json({
-    success: false,
-    fallback: {
-      google: `https://www.google.com/search?q=${vin}+window+sticker`,
-      iseecars: `https://www.iseecars.com/vin?vin=${vin}`
-    }
+    success: false
   });
 });
 
