@@ -27,68 +27,88 @@ async function getDB() {
       headers: { Authorization: `token ${TOKEN}` }
     });
 
-    if (!res.ok) return {};
+    if (!res.ok) {
+      console.log("DB FETCH FAILED:", res.status);
+      return {};
+    }
 
     const data = await res.json();
     const content = Buffer.from(data.content, "base64").toString("utf-8");
 
     return JSON.parse(content);
-  } catch {
+  } catch (err) {
+    console.log("DB ERROR:", err);
     return {};
   }
 }
 
 // UPDATE DB
 async function updateDB(newDB) {
-  const res = await fetch(`${GITHUB_API}/db.json`, {
-    headers: { Authorization: `token ${TOKEN}` }
-  });
+  try {
+    const res = await fetch(`${GITHUB_API}/db.json`, {
+      headers: { Authorization: `token ${TOKEN}` }
+    });
 
-  const data = await res.json();
+    const data = await res.json();
 
-  const content = Buffer
-    .from(JSON.stringify(newDB, null, 2))
-    .toString("base64");
+    const content = Buffer
+      .from(JSON.stringify(newDB, null, 2))
+      .toString("base64");
 
-  await fetch(`${GITHUB_API}/db.json`, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      message: "Update db.json",
-      content,
-      sha: data.sha,
-      branch: BRANCH
-    })
-  });
+    const update = await fetch(`${GITHUB_API}/db.json`, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "Update db.json",
+        content,
+        sha: data.sha,
+        branch: BRANCH
+      })
+    });
+
+    console.log("DB UPDATE STATUS:", update.status);
+    console.log(await update.text());
+
+  } catch (err) {
+    console.log("DB UPDATE ERROR:", err);
+  }
 }
 
 // UPLOAD PDF
 async function uploadPDF(vin, buffer) {
+  console.log("TOKEN:", TOKEN ? "exists" : "missing");
+
   const filePath = `stickers/${vin}.pdf`;
   const base64 = buffer.toString("base64");
 
-  const res = await fetch(`${GITHUB_API}/${filePath}`, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      message: `Add ${vin}`,
-      content: base64,
-      branch: BRANCH
-    })
-  });
+  try {
+    const res = await fetch(`${GITHUB_API}/${filePath}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: `Add ${vin}`,
+        content: base64,
+        branch: BRANCH
+      })
+    });
 
-  if (!res.ok) {
-    console.log("Upload failed:", await res.text());
+    console.log("UPLOAD STATUS:", res.status);
+    console.log(await res.text());
+
+    if (!res.ok) return null;
+
+    return filePath;
+
+  } catch (err) {
+    console.log("UPLOAD ERROR:", err);
     return null;
   }
-
-  return filePath;
 }
 
 // MAIN ROUTE
@@ -98,7 +118,6 @@ app.get("/sticker/:vin", async (req, res) => {
 
   const db = await getDB();
 
-  // cache
   if (db[vin] && db[vin].file) {
     return res.json({
       success: true,
@@ -113,7 +132,6 @@ app.get("/sticker/:vin", async (req, res) => {
 
     if (response.status === 200 && buffer.length > 10000) {
 
-      // 🔥 WAIT FOR EVERYTHING
       const filePath = await uploadPDF(vin, buffer);
 
       if (filePath) {
@@ -125,7 +143,6 @@ app.get("/sticker/:vin", async (req, res) => {
         await updateDB(db);
       }
 
-      // THEN respond
       return res.json({
         success: true,
         url: dodgeURL
@@ -133,7 +150,7 @@ app.get("/sticker/:vin", async (req, res) => {
     }
 
   } catch (err) {
-    console.log(err);
+    console.log("DODGE ERROR:", err);
   }
 
   return res.json({
