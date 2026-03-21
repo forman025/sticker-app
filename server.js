@@ -1,3 +1,5 @@
+console.log("NEW CODE RUNNING");
+
 const express = require("express");
 const fetch = require("node-fetch");
 
