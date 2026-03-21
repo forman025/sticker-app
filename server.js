@@ -145,7 +145,7 @@ app.get("/sticker/:vin", async (req, res) => {
     const response = await fetch(dodgeURL);
     const buffer = await response.buffer();
 
-    if (response.status === 200 && buffer.length > 10000) {
+    if (response.status === 200) {
 
       const filePath = await uploadPDF(vin, buffer);
 
