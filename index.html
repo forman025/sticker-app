@@ -153,7 +153,6 @@
   </div>
 
   <script>
-    const API = "https://mopar-backend.onrender.com";
     let currentURL = null;
 
     const vinInput = document.getElementById("vinInput");
@@ -165,6 +164,10 @@
 
     function isIOS() {
       return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    }
+
+    function getDodgeURL(vin) {
+      return `https://www.dodge.com/hostd/windowsticker/getWindowStickerPdf.do?vin=${vin}`;
     }
 
     searchBtn.addEventListener("click", searchVIN);
@@ -181,33 +184,31 @@
       }
 
       searchBtn.disabled = true;
-      searchBtn.innerText = "Searching...";
+      searchBtn.innerText = "Checking...";
 
-      status.innerHTML = "Searching...";
+      status.innerHTML = "Fetching from Dodge...";
       status.className = "status";
 
       openBtn.style.display = "none";
       requestBox.style.display = "none";
 
+      const dodgeURL = getDodgeURL(vin);
+
       try {
-        const res = await fetch(`${API}/sticker/${vin}`);
-        const data = await res.json();
+        const res = await fetch(dodgeURL, { method: "HEAD" });
 
-        if (data.success && data.url) {
-          currentURL = data.url;
+        if (res.ok) {
+          currentURL = dodgeURL;
 
-          status.innerHTML = data.cached
-            ? "Loaded from database ⚡"
-            : "Sticker found";
-
+          status.innerHTML = "Sticker found";
           status.className = "status success";
-          openBtn.style.display = "block";
 
+          openBtn.style.display = "block";
         } else {
-          throw new Error("Not found");
+          throw new Error();
         }
 
-      } catch (err) {
+      } catch {
         status.innerHTML = "Sticker not found";
         status.className = "status error";
 
@@ -222,7 +223,6 @@
     function openSticker() {
       if (!currentURL) return;
 
-      // iPhone fix: force same-tab open
       if (isIOS()) {
         window.location.assign(currentURL);
       } else {
@@ -230,13 +230,12 @@
         if (win) {
           win.location = currentURL;
         } else {
-          // fallback if popup blocked
           window.location.href = currentURL;
         }
       }
     }
 
-    async function submitRequest() {
+    function submitRequest() {
       const vin = document.getElementById("requestVin").value.toUpperCase();
       const email = document.getElementById("emailInput").value;
 
@@ -246,30 +245,10 @@
         return;
       }
 
-      requestBtn.disabled = true;
-      requestBtn.innerText = "Submitting...";
+      status.innerHTML = "Request noted (backend not connected yet)";
+      status.className = "status success";
 
-      try {
-        await fetch(`${API}/request`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ vin, email })
-        });
-
-        status.innerHTML = "Request submitted. We'll email you.";
-        status.className = "status success";
-
-        requestBox.style.display = "none";
-
-      } catch {
-        status.innerHTML = "Failed to submit request";
-        status.className = "status error";
-      }
-
-      requestBtn.disabled = false;
-      requestBtn.innerText = "Request Sticker";
+      requestBox.style.display = "none";
     }
   </script>
 
