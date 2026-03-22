@@ -142,11 +142,19 @@ async function searchVIN() {
   }
 
   btn.disabled = true;
-  btn.innerText = "Searching...";
+
+  // 🔥 animated loading text
+  let dots = 0;
+  const interval = setInterval(() => {
+    dots = (dots + 1) % 4;
+    btn.innerText = "Searching" + ".".repeat(dots);
+  }, 300);
 
   try {
     const res = await fetch(`${API}/sticker/${vin}`);
     const data = await res.json();
+
+    clearInterval(interval);
 
     if (data.success) {
       currentURL = data.url;
@@ -168,6 +176,7 @@ async function searchVIN() {
     }
 
   } catch {
+    clearInterval(interval);
     status.innerHTML = "Server error";
     status.className = "status error";
   }
@@ -207,7 +216,7 @@ function renderRecents() {
   if (!recents.length) return;
 
   box.innerHTML = "Recent: " + recents
-    .map(v => `<span style="cursor:pointer" onclick="quickSearch('${v}')">${v}</span>`)
+    .map(v => `<span style="cursor:pointer; color:#2563eb;" onclick="quickSearch('${v}')">${v}</span>`)
     .join(" • ");
 }
 
@@ -218,7 +227,7 @@ function quickSearch(vin) {
 
 renderRecents();
 
-// enter key
+// enter key support
 document.getElementById("vinInput").addEventListener("keypress", e => {
   if (e.key === "Enter") searchVIN();
 });
