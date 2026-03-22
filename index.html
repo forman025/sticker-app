@@ -18,11 +18,7 @@ body {
   min-height: 100vh;
 }
 
-.container {
-  width: 100%;
-  max-width: 420px;
-  padding: 24px;
-}
+.container { max-width: 420px; padding: 24px; width: 100%; }
 
 .card {
   background: white;
@@ -33,27 +29,20 @@ body {
 }
 
 .logo {
-  width: 44px;
-  height: 44px;
+  width: 44px; height: 44px;
   margin: 0 auto 10px;
   border-radius: 10px;
   background: linear-gradient(135deg, #ff6a00, #ff9f1c);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700;
 }
 
-h1 {
-  margin: 6px 0;
-  font-size: 20px;
-}
+h1 { margin: 6px 0; font-size: 20px; }
 
 .subtitle {
   color: #6b7280;
   font-size: 14px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 input {
@@ -69,9 +58,8 @@ input {
 button {
   width: 100%;
   padding: 14px;
-  border: none;
   border-radius: 10px;
-  font-size: 16px;
+  border: none;
   font-weight: 600;
   cursor: pointer;
 }
@@ -79,7 +67,6 @@ button {
 .search-btn {
   background: linear-gradient(to right, #ff4d4d, #ff9f1c);
   color: white;
-  margin-bottom: 10px;
 }
 
 .open-btn {
@@ -88,11 +75,7 @@ button {
   margin-top: 10px;
 }
 
-.status {
-  margin-top: 10px;
-  font-size: 14px;
-}
-
+.status { margin-top: 10px; font-size: 14px; }
 .success { color: #16a34a; }
 .error { color: #dc2626; }
 
@@ -113,32 +96,35 @@ button {
     <div class="logo">M</div>
 
     <h1>Mopar Sticker Lookup</h1>
-    <div class="subtitle">Find your original Mopar window sticker instantly</div>
+    <div class="subtitle">
+      Lookup any Dodge, Charger, Challenger, or Mopar VIN instantly
+    </div>
 
     <input id="vinInput" maxlength="17" placeholder="Enter VIN (17 characters)" />
+    <button id="searchBtn" class="search-btn" onclick="searchVIN()">Search</button>
 
-    <button id="searchBtn" class="search-btn" onclick="searchVIN()">
-      Search
-    </button>
-
+    <div id="recent" class="subtitle"></div>
     <div id="status" class="status"></div>
 
     <button id="openBtn" class="open-btn" style="display:none;" onclick="openSticker()">
       Open Sticker
     </button>
 
+    <button id="copyBtn" class="search-btn" style="display:none;" onclick="copyLink()">
+      Copy Sticker Link
+    </button>
+
   </div>
 
   <div class="footer">
     Fast · Free · Built for Mopar owners<br/>
-    Not affiliated with Dodge, Chrysler, Jeep, or Ram
+    Share this with your friends 🔥
   </div>
 </div>
 
 <script>
 const API = "https://mopar-backend.onrender.com";
 let currentURL = null;
-let isCached = false;
 
 function isIPhone() {
   return /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -148,10 +134,9 @@ async function searchVIN() {
   const vin = document.getElementById("vinInput").value.trim().toUpperCase();
   const status = document.getElementById("status");
   const btn = document.getElementById("searchBtn");
-  const openBtn = document.getElementById("openBtn");
 
   if (vin.length !== 17) {
-    status.innerHTML = "Enter a valid 17-character VIN";
+    status.innerHTML = "Enter a valid VIN";
     status.className = "status error";
     return;
   }
@@ -159,27 +144,23 @@ async function searchVIN() {
   btn.disabled = true;
   btn.innerText = "Searching...";
 
-  status.innerHTML = "Checking database...";
-  status.className = "status";
-
-  openBtn.style.display = "none";
-
   try {
     const res = await fetch(`${API}/sticker/${vin}`);
     const data = await res.json();
 
     if (data.success) {
       currentURL = data.url;
-      isCached = data.cached || false;
 
-      if (isCached) {
-        status.innerHTML = "⚡ Loaded instantly from database";
-      } else {
-        status.innerHTML = "Sticker found & saved";
-      }
+      document.getElementById("openBtn").style.display = "block";
+      document.getElementById("copyBtn").style.display = "block";
+
+      status.innerHTML = data.cached
+        ? "⚡ Loaded from database"
+        : "Sticker found & saved";
 
       status.className = "status success";
-      openBtn.style.display = "block";
+
+      saveRecent(vin);
 
     } else {
       status.innerHTML = "Sticker not found";
@@ -187,7 +168,7 @@ async function searchVIN() {
     }
 
   } catch {
-    status.innerHTML = "Server error — try again";
+    status.innerHTML = "Server error";
     status.className = "status error";
   }
 
@@ -199,13 +180,48 @@ function openSticker() {
   if (!currentURL) return;
 
   if (isIPhone()) {
-    // 🔥 Fix iPhone PDF issue
     const viewer = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(currentURL)}`;
     window.location.href = viewer;
   } else {
     window.open(currentURL, "_blank");
   }
 }
+
+function copyLink() {
+  navigator.clipboard.writeText(currentURL);
+  alert("Link copied!");
+}
+
+// 🔥 recent VINs
+function saveRecent(vin) {
+  let recents = JSON.parse(localStorage.getItem("vinHistory") || "[]");
+  recents = [vin, ...recents.filter(v => v !== vin)].slice(0, 5);
+  localStorage.setItem("vinHistory", JSON.stringify(recents));
+  renderRecents();
+}
+
+function renderRecents() {
+  const recents = JSON.parse(localStorage.getItem("vinHistory") || "[]");
+  const box = document.getElementById("recent");
+
+  if (!recents.length) return;
+
+  box.innerHTML = "Recent: " + recents
+    .map(v => `<span style="cursor:pointer" onclick="quickSearch('${v}')">${v}</span>`)
+    .join(" • ");
+}
+
+function quickSearch(vin) {
+  document.getElementById("vinInput").value = vin;
+  searchVIN();
+}
+
+renderRecents();
+
+// enter key
+document.getElementById("vinInput").addEventListener("keypress", e => {
+  if (e.key === "Enter") searchVIN();
+});
 </script>
 
 </body>
