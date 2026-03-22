@@ -78,7 +78,6 @@ async function uploadPDF(vin, buffer) {
   const filePath = `stickers/${vin}.pdf`;
   const base64 = buffer.toString("base64");
 
-  // check if exists
   const check = await fetch(`${GITHUB_API}/${filePath}`, {
     headers: { Authorization: `token ${TOKEN}` }
   });
@@ -113,6 +112,31 @@ async function uploadPDF(vin, buffer) {
   return filePath;
 }
 
+// ✅ NEW: SERVE PDF THROUGH YOUR SERVER (fixes iPhone download)
+app.get("/pdf/:vin", async (req, res) => {
+  const vin = req.params.vin.toUpperCase();
+  const db = await getDB();
+
+  if (!db[vin] || !db[vin].file) {
+    return res.status(404).send("Not found");
+  }
+
+  const fileURL = `${GITHUB_BASE}/${db[vin].file}`;
+
+  try {
+    const response = await fetch(fileURL);
+    const buffer = await response.buffer();
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "inline");
+
+    res.send(buffer);
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Error loading PDF");
+  }
+});
+
 // MAIN ROUTE
 app.get("/sticker/:vin", async (req, res) => {
   const vin = req.params.vin.toUpperCase();
@@ -120,11 +144,12 @@ app.get("/sticker/:vin", async (req, res) => {
 
   const db = await getDB();
 
+  // ✅ CHANGED: use your proxy instead of raw GitHub
   if (db[vin] && db[vin].file) {
     return res.json({
       success: true,
       cached: true,
-      url: `${GITHUB_BASE}/${db[vin].file}`
+      url: `${req.protocol}://${req.get("host")}/pdf/${vin}`
     });
   }
 
