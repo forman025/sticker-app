@@ -126,10 +126,6 @@ button {
 const API = "https://mopar-backend.onrender.com";
 let currentURL = null;
 
-function isIPhone() {
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
 async function searchVIN() {
   const vin = document.getElementById("vinInput").value.trim().toUpperCase();
   const status = document.getElementById("status");
@@ -143,7 +139,6 @@ async function searchVIN() {
 
   btn.disabled = true;
 
-  // 🔥 animated loading text
   let dots = 0;
   const interval = setInterval(() => {
     dots = (dots + 1) % 4;
@@ -188,12 +183,7 @@ async function searchVIN() {
 function openSticker() {
   if (!currentURL) return;
 
-  if (isIPhone()) {
-    const viewer = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(currentURL)}`;
-    window.location.href = viewer;
-  } else {
-    window.open(currentURL, "_blank");
-  }
+  window.open(currentURL, "_blank");
 }
 
 function copyLink() {
@@ -201,7 +191,7 @@ function copyLink() {
   alert("Link copied!");
 }
 
-// 🔥 recent VINs
+// recent VINs
 function saveRecent(vin) {
   let recents = JSON.parse(localStorage.getItem("vinHistory") || "[]");
   recents = [vin, ...recents.filter(v => v !== vin)].slice(0, 5);
@@ -227,7 +217,6 @@ function quickSearch(vin) {
 
 renderRecents();
 
-// enter key support
 document.getElementById("vinInput").addEventListener("keypress", e => {
   if (e.key === "Enter") searchVIN();
 });
