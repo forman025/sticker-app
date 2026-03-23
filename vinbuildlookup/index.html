@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Mopar Build Lookup</title>
+<title>VIN Sticker</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -95,12 +95,14 @@ button {
   float:left;
   font-family:'Oswald';
   font-size:28px;
+  margin-right:10px;
 }
 
 .brand {
   font-family:'Oswald';
   font-size:34px;
   letter-spacing:3px;
+  text-transform:uppercase;
 }
 
 .model {
@@ -135,6 +137,7 @@ button {
   font-family:'Oswald';
   margin-top:10px;
   border-bottom:1px solid black;
+  text-transform:uppercase;
 }
 
 /* FEATURES */
@@ -174,6 +177,7 @@ button {
   margin-top:15px;
   text-align:center;
   color:#ff3c00;
+  cursor:pointer;
 }
 
 /* MOBILE FIX */
@@ -186,6 +190,7 @@ button {
   .left,.right {
     width:100%;
     border:none;
+    padding-left:0;
   }
 
   .feature-columns {
@@ -247,7 +252,9 @@ async function lookupVIN(){
     let features = [];
 
     if(d.high_value_features){
-      features = Object.values(d.high_value_features).flat().map(f => f.description);
+      features = Object.values(d.high_value_features)
+        .flat()
+        .map(f => f.description);
     }
 
     const half = Math.ceil(features.length / 2);
@@ -278,7 +285,7 @@ async function lookupVIN(){
 
         <div class="header">
           <div class="year">${d.year}</div>
-          <div class="brand">${d.make}</div>
+          <div class="brand">${d.make.toUpperCase()}</div>
           <div class="model">${d.model} ${d.trim || ""}</div>
 
           <div class="base-box">
