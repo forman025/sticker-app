@@ -300,7 +300,7 @@ async function lookupVIN() {
   // 🔥 LOADER
   result.innerHTML = `<div class="loader"></div>`;
 
-  const res = await fetch(`fetch(`fetch(`https://mopar-backend.onrender.com/api/decode/${vin}`);
+  const res = await fetch(`https://mopar-backend.onrender.com/api/decode/${vin}`);
   const json = await res.json();
 
   if (!json.data) {
