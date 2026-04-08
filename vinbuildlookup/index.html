@@ -13,32 +13,29 @@ body {
   font-family: Arial, sans-serif;
   background: #222;
   -webkit-text-size-adjust: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 
-/* HEADER */
-.topbar {
-  width:100%;
-  background:linear-gradient(90deg,#0a0a0a,#000,#0a0a0a);
-  color:white;
-  padding:16px 0;
-  text-align:center;
-  font-family: 'Oswald', sans-serif;
-  letter-spacing:4px;
-  margin-bottom: 10px;
-}
-
-/* CONTAINER (MATCHES WORKING APP BEHAVIOR) */
 .container {
   max-width: 420px;
   width: 100%;
   padding: 24px;
-  margin: 0 auto;
+  text-align: center;
 }
 
-/* INPUT */
+.title {
+  color: white;
+  font-size: 20px;
+  margin-bottom: 12px;
+  letter-spacing: 2px;
+}
+
 input {
   width: 100%;
-  padding: 14px;
+  padding: 16px;
   margin-bottom: 12px;
   border-radius: 6px;
   border: 1px solid #555;
@@ -47,10 +44,9 @@ input {
   font-size: 16px;
 }
 
-/* BUTTON */
 button {
   width: 100%;
-  padding: 14px;
+  padding: 16px;
   border-radius: 6px;
   border: none;
   font-size: 16px;
@@ -59,20 +55,10 @@ button {
   cursor: pointer;
 }
 
-/* MOBILE SCALE */
 @media (max-width: 768px) {
-  .container {
-    padding: 24px;
-  }
-
-  input {
+  input, button {
     font-size: 18px;
-    padding: 16px;
-  }
-
-  button {
-    font-size: 18px;
-    padding: 16px;
+    padding: 18px;
   }
 }
 </style>
@@ -80,9 +66,8 @@ button {
 
 <body>
 
-<div class="topbar">MOPAR BUILD LOOKUP</div>
-
 <div class="container">
+  <div class="title">MOPAR BUILD LOOKUP</div>
   <input id="vinInput" placeholder="ENTER VIN (17 CHARACTERS)" maxlength="17">
   <button onclick="lookupVIN()">Search</button>
 </div>
