@@ -2,96 +2,139 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Mopar Build Lookup</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIN Sticker</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <style>
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #222;
-}
-
-/* LOGO */
-.topbar {
-  text-align: center;
-  padding: 40px 0 20px;
-}
-
-.logo-text {
-  font-family: 'Oswald', sans-serif;
-  font-size: 32px;
-  letter-spacing: 6px;
-  color: #e5e5e5;
-}
-
-/* CONTAINER */
-.container {
-  max-width: 420px;
-  width: 100%;
-  padding: 24px;
-  margin: 0 auto;
-}
-
-/* INPUT */
-input {
-  width: 100%;
-  padding: 16px;
-  margin-bottom: 12px;
-  border-radius: 10px;
-  border: 1px solid #555;
-  background: #111;
-  color: white;
-  font-size: 16px;
-}
-
-/* BUTTON */
-button {
-  width: 100%;
-  padding: 16px;
-  border-radius: 10px;
-  border: none;
-  font-size: 16px;
-  background: #ff3c00;
-  color: white;
-  cursor: pointer;
-}
-
+body {background:#222;margin:0;font-family:Arial;}
+.topbar {background:#000;color:white;text-align:center;padding:16px;font-family:'Oswald';}
+.container {max-width:420px;margin:40px auto;}
+input {width:100%;padding:12px;background:#111;color:white;margin-bottom:10px;}
+button {width:100%;padding:12px;background:#ff3c00;color:white;border:none;}
+.result-container {max-width:950px;margin:20px auto;}
+.loader {border:4px solid #eee;border-top:4px solid #ff3c00;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;margin:20px auto;}
+@keyframes spin {100% {transform:rotate(360deg);}}
+.sticker {background:white;padding:20px;color:black;}
+.header {border-bottom:2px solid black;padding-bottom:10px;}
+.columns {display:flex;margin-top:15px;}
+.left {width:60%;font-size:12px;}
+.right {width:40%;font-size:12px;border-left:2px solid black;padding-left:10px;}
+.section-title {font-family:'Oswald';font-weight:600;margin-top:12px;border-bottom:1px solid black;}
+.option-row {display:flex;justify-content:space-between;}
+.option-row span:last-child {min-width:80px;text-align:right;}
+.total-box {border:3px solid black;padding:10px;text-align:center;font-family:'Oswald';margin-top:10px;}
 </style>
 </head>
 
 <body>
 
-<div class="topbar">
-  <div class="logo-text">MOPAR BUILD LOOKUP</div>
-</div>
+<div class="topbar">MOPAR BUILD LOOKUP</div>
 
 <div class="container">
-  <input id="vinInput" placeholder="ENTER VIN (17 CHARACTERS)" maxlength="17">
-  <button type="button" onclick="lookupVIN()">Search</button>
+  <input id="vinInput" placeholder="ENTER VIN">
+  <button onclick="lookupVIN()">Search</button>
 </div>
 
+<div id="result" class="result-container"></div>
+
 <script>
-async function lookupVIN() {
-  const vin = document.getElementById("vinInput").value.trim();
 
-  if (vin.length !== 17) {
-    alert("Invalid VIN");
-    return;
-  }
+function formatPrice(num){return `$${Number(num).toLocaleString()}`;}
 
-  try {
-    const res = await fetch(`https://mopar-vin-api.onrender.com/api/decode/${vin}`);
-    const json = await res.json();
-    alert(json.data.year + " " + json.data.make + " " + json.data.model);
-  } catch (e) {
-    alert("Error fetching VIN");
+function getCleanStandardFeatures(d){
+  const safeKeywords=["Apple CarPlay","Android Auto","Bluetooth","Touch Screen","Backup Camera","Brake Assist","Keyless","Remote","Voice","Steering Wheel","WiFi"];
+  let features=[];
+  if(d.high_value_features?.STANDARD){
+    features=d.high_value_features.STANDARD
+      .map(f=>f.description)
+      .filter(desc=>safeKeywords.some(k=>desc.toLowerCase().includes(k.toLowerCase())));
   }
+  return [...new Set(features)];
 }
+
+async function lookupVIN(){
+  const vin=document.getElementById("vinInput").value.trim();
+  const result=document.getElementById("result");
+
+  if(vin.length!==17){result.innerHTML="Invalid VIN";return;}
+
+  result.innerHTML='<div class="loader"></div>';
+
+  const res=await fetch(`https://mopar-vin-api.onrender.com/api/decode/${vin}`);
+  const json=await res.json();
+  const d=json.data;
+
+  const exterior=d.exterior_color?.name||"";
+  const interior=(d.interior_color?.name||"").replace("Perfromance","Performance");
+
+  const standardFeatures=getCleanStandardFeatures(d);
+  const featuresHTML=standardFeatures.length
+    ? standardFeatures.map(f=>`• ${f}`).join("<br>")
+    : "Standard features not available";
+
+  let optionsArr=(d.installed_options_details||[]).map(o=>({
+    code:o.code,
+    name:o.name.trim(),
+    price:Number(o.msrp)
+  }));
+
+  optionsArr=optionsArr.map(opt=>{
+    if(opt.code==="PP2"&&d.exterior_color?.name){
+      return {...opt,name:d.exterior_color.name};
+    }
+    return opt;
+  });
+
+  const seen=new Set();
+  optionsArr=optionsArr.filter(opt=>{
+    if(seen.has(opt.code))return false;
+    seen.add(opt.code);
+    return true;
+  });
+
+  optionsArr.sort((a,b)=>b.price-a.price);
+
+  let optionsHTML="";
+  optionsArr.forEach(opt=>{
+    optionsHTML+=`<div class="option-row"><span>${opt.name}</span><span>${formatPrice(opt.price)}</span></div>`;
+  });
+
+  result.innerHTML=`
+    <div class="sticker">
+      <div class="header">
+        <strong>${d.year} ${d.make} ${d.model} ${d.trim}</strong><br>
+        Base Price: ${formatPrice(d.msrp)}
+      </div>
+
+      <div class="columns">
+        <div class="left">
+          <div class="section-title">Vehicle Info</div>
+          Engine: ${d.engine}<br>
+          Transmission: ${d.transmission}<br>
+          Drivetrain: ${d.drivetrain}<br>
+          Exterior: ${exterior}<br>
+          Interior: ${interior}
+
+          <div class="section-title">Standard Equipment</div>
+          ${featuresHTML}
+        </div>
+
+        <div class="right">
+          <div class="section-title">Optional Equipment</div>
+          ${optionsHTML}
+          <br>
+          Destination: ${formatPrice(d.delivery_charges)}
+          <div class="total-box">
+            TOTAL: ${formatPrice(d.combined_msrp)}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 </script>
 
 </body>
