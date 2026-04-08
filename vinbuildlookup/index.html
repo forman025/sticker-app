@@ -4,7 +4,142 @@
 <meta charset="UTF-8">
 <title>VIN Sticker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VIN Sticker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;}
+
+body{
+  background:#222;
+  margin:0;
+  font-family:Arial;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+
+/* logo (same feel as your good version) */
+.topbar{
+  position:absolute;
+  top:0;
+  width:100%;
+  text-align:center;
+  padding:30px 0 10px;
+  font-family:'Oswald';
+  font-size:26px;
+  letter-spacing:5px;
+  color:#e5e5e5;
+}
+
+.container{
+  max-width:420px;
+  width:100%;
+  padding:24px;
+}
+
+input{
+  width:100%;
+  padding:16px;
+  background:#111;
+  color:white;
+  margin-bottom:12px;
+  border:1px solid #555;
+  border-radius:10px;
+  font-size:16px;
+}
+
+button{
+  width:100%;
+  padding:16px;
+  background:#ff3c00;
+  color:white;
+  border:none;
+  border-radius:10px;
+  font-size:16px;
+  cursor:pointer;
+}
+
+.result{
+  position:absolute;
+  top:120px;
+  width:100%;
+  max-width:900px;
+  margin:0 auto;
+  left:0;
+  right:0;
+}
+
+.loader{
+  border:4px solid #eee;
+  border-top:4px solid #ff3c00;
+  border-radius:50%;
+  width:30px;
+  height:30px;
+  animation:spin 1s linear infinite;
+  margin:20px auto;
+}
+
+@keyframes spin{100%{transform:rotate(360deg);}}
+
+/* mobile behavior */
+@media(max-width:768px){
+  body{
+    align-items:flex-start;
+    padding-top:80px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">MOPAR BUILD LOOKUP</div>
+
+<div class="container">
+  <input id="vinInput" placeholder="ENTER VIN (17 CHARACTERS)" maxlength="17">
+  <button type="button" onclick="lookupVIN()">Search</button>
+</div>
+
+<div id="result" class="result"></div>
+
+<script>
+async function lookupVIN(){
+  const vin=document.getElementById("vinInput").value.trim();
+  const result=document.getElementById("result");
+
+  if(vin.length!==17){
+    result.innerHTML="Invalid VIN";
+    return;
+  }
+
+  result.innerHTML='<div class="loader"></div>';
+
+  try{
+    const res=await fetch(`https://mopar-vin-api.onrender.com/api/decode/${vin}`);
+    const json=await res.json();
+    const d=json.data;
+
+    result.innerHTML=`
+      <div style="background:white;color:black;padding:20px;">
+        ${d.year} ${d.make} ${d.model} ${d.trim}
+      </div>
+    `;
+  }catch(e){
+    result.innerHTML="Error loading VIN";
+  }
+}
+</script>
+
+</body>
+</html>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;600&display=swap" rel="stylesheet">
 
 <style>
