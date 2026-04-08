@@ -16,7 +16,7 @@ body {
   background: #222;
 }
 
-/* 🔥 LOGO STYLE HEADER */
+/* LOGO */
 .topbar {
   text-align: center;
   padding: 40px 0 20px;
@@ -58,23 +58,9 @@ button {
   font-size: 16px;
   background: #ff3c00;
   color: white;
+  cursor: pointer;
 }
 
-/* MOBILE */
-@media (max-width:768px){
-  .logo-text {
-    font-size: 26px;
-    letter-spacing: 4px;
-  }
-
-  input {
-    font-size: 18px;
-  }
-
-  button {
-    font-size: 18px;
-  }
-}
 </style>
 </head>
 
@@ -86,17 +72,25 @@ button {
 
 <div class="container">
   <input id="vinInput" placeholder="ENTER VIN (17 CHARACTERS)" maxlength="17">
-  <button onclick="lookupVIN()">Search</button>
+  <button type="button" onclick="lookupVIN()">Search</button>
 </div>
 
 <script>
 async function lookupVIN() {
   const vin = document.getElementById("vinInput").value.trim();
-  if (vin.length !== 17) return alert("Invalid VIN");
 
-  const res = await fetch(`https://mopar-vin-api.onrender.com/api/decode/${vin}`);
-  const json = await res.json();
-  alert(json.data.year + " " + json.data.make);
+  if (vin.length !== 17) {
+    alert("Invalid VIN");
+    return;
+  }
+
+  try {
+    const res = await fetch(`https://mopar-vin-api.onrender.com/api/decode/${vin}`);
+    const json = await res.json();
+    alert(json.data.year + " " + json.data.make + " " + json.data.model);
+  } catch (e) {
+    alert("Error fetching VIN");
+  }
 }
 </script>
 
