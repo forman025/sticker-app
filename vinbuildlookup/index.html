@@ -5,6 +5,8 @@
 <title>Mopar Build Lookup</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+
 <style>
 * { box-sizing: border-box; }
 
@@ -12,53 +14,65 @@ body {
   margin: 0;
   font-family: Arial, sans-serif;
   background: #222;
-  -webkit-text-size-adjust: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
 }
 
+/* 🔥 LOGO STYLE HEADER */
+.topbar {
+  text-align: center;
+  padding: 40px 0 20px;
+}
+
+.logo-text {
+  font-family: 'Oswald', sans-serif;
+  font-size: 32px;
+  letter-spacing: 6px;
+  color: #e5e5e5;
+}
+
+/* CONTAINER */
 .container {
   max-width: 420px;
   width: 100%;
   padding: 24px;
-  text-align: center;
+  margin: 0 auto;
 }
 
-.title {
-  color: white;
-  font-size: 20px;
-  margin-bottom: 12px;
-  letter-spacing: 2px;
-}
-
+/* INPUT */
 input {
   width: 100%;
   padding: 16px;
   margin-bottom: 12px;
-  border-radius: 6px;
+  border-radius: 10px;
   border: 1px solid #555;
   background: #111;
   color: white;
   font-size: 16px;
 }
 
+/* BUTTON */
 button {
   width: 100%;
   padding: 16px;
-  border-radius: 6px;
+  border-radius: 10px;
   border: none;
   font-size: 16px;
   background: #ff3c00;
   color: white;
-  cursor: pointer;
 }
 
-@media (max-width: 768px) {
-  input, button {
+/* MOBILE */
+@media (max-width:768px){
+  .logo-text {
+    font-size: 26px;
+    letter-spacing: 4px;
+  }
+
+  input {
     font-size: 18px;
-    padding: 18px;
+  }
+
+  button {
+    font-size: 18px;
   }
 }
 </style>
@@ -66,37 +80,23 @@ button {
 
 <body>
 
+<div class="topbar">
+  <div class="logo-text">MOPAR BUILD LOOKUP</div>
+</div>
+
 <div class="container">
-  <div class="title">MOPAR BUILD LOOKUP</div>
   <input id="vinInput" placeholder="ENTER VIN (17 CHARACTERS)" maxlength="17">
   <button onclick="lookupVIN()">Search</button>
 </div>
 
-<div id="result" style="max-width:900px;margin:20px auto;color:white;"></div>
-
 <script>
 async function lookupVIN() {
   const vin = document.getElementById("vinInput").value.trim();
-  const result = document.getElementById("result");
+  if (vin.length !== 17) return alert("Invalid VIN");
 
-  if (vin.length !== 17) {
-    result.innerHTML = "Invalid VIN";
-    return;
-  }
-
-  result.innerHTML = "Loading...";
-
-  try {
-    const res = await fetch(`https://mopar-vin-api.onrender.com/api/decode/${vin}`);
-    const json = await res.json();
-    const d = json.data;
-
-    result.innerHTML = `<div style="background:white;color:black;padding:20px;">
-      ${d.year} ${d.make} ${d.model} ${d.trim}
-    </div>`;
-  } catch {
-    result.innerHTML = "Error loading VIN";
-  }
+  const res = await fetch(`https://mopar-vin-api.onrender.com/api/decode/${vin}`);
+  const json = await res.json();
+  alert(json.data.year + " " + json.data.make);
 }
 </script>
 
