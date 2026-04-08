@@ -8,16 +8,32 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <style>
-body {background:#222;margin:0;font-family:Arial;-webkit-text-size-adjust:100%;}
-.topbar {background:#000;color:white;text-align:center;padding:16px;font-family:'Oswald';margin-bottom:10px;}
+body {
+  background:#222;
+  margin:0;
+  font-family:Arial;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
 
-/* 🔥 ONLY FIX: match working app spacing + sizing */
+.topbar {
+  background:#000;
+  color:white;
+  text-align:center;
+  padding:16px;
+  font-family:'Oswald';
+  width:100%;
+  position:absolute;
+  top:0;
+  left:0;
+}
+
 .container {
   max-width:420px;
   width:100%;
   padding:24px;
-  margin:40px auto;
-  box-sizing:border-box;
 }
 
 input {
@@ -26,7 +42,6 @@ input {
   background:#111;
   color:white;
   margin-bottom:12px;
-  font-size:16px;
   box-sizing:border-box;
 }
 
@@ -36,7 +51,6 @@ button {
   background:#ff3c00;
   color:white;
   border:none;
-  font-size:16px;
   box-sizing:border-box;
 }
 
@@ -53,11 +67,11 @@ button {
 .option-row span:last-child {min-width:80px;text-align:right;}
 .total-box {border:3px solid black;padding:10px;text-align:center;font-family:'Oswald';margin-top:10px;}
 
-/* 🔥 mobile scale only */
 @media (max-width:768px){
-  .container {padding:24px;}
-  input {font-size:18px;padding:16px;}
-  button {font-size:18px;padding:16px;}
+  body {
+    align-items:flex-start;
+    padding-top:60px;
+  }
   .columns {flex-direction:column;}
   .left,.right {width:100%;border-left:none;padding-left:0;}
 }
@@ -76,7 +90,6 @@ button {
 <div id="result" class="result-container"></div>
 
 <script>
-
 function formatPrice(num){return `$${Number(num).toLocaleString()}`;}
 
 function getCleanStandardFeatures(d){
@@ -170,7 +183,6 @@ async function lookupVIN(){
     </div>
   `;
 }
-
 </script>
 
 </body>
