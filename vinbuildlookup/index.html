@@ -8,51 +8,90 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <style>
-.topbar{width:100%;background:linear-gradient(90deg,#0a0a0a,#000,#0a0a0a);color:white;padding:16px 0;text-align:center;font-family:'Oswald';letter-spacing:4px;font-size:18px;}
-.topbar .mopar{color:#ff3c00;font-weight:600;}
-body{background:#222;margin:0;font-family:Arial;-webkit-text-size-adjust:100%;}
-.container{max-width:420px;margin:40px auto;}
-input{width:100%;padding:12px;font-size:14px;border:1px solid #aaa;background:#111;color:white;border-radius:3px;margin-bottom:10px;box-sizing:border-box;}
-button{width:100%;padding:12px;font-size:14px;background:#ff3c00;color:white;border:none;cursor:pointer;}
-.result-container{max-width:950px;margin:20px auto;}
-.loader{border:4px solid #eee;border-top:4px solid #ff3c00;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;margin:20px auto;}
-@keyframes spin{100%{transform:rotate(360deg);}}
-.sticker{background:white;padding:20px;color:black;}
-.header{border-bottom:2px solid black;padding-bottom:10px;margin-bottom:10px;}
-.year{float:left;font-family:'Oswald';font-size:28px;margin-right:10px;}
-.brand{font-family:'Oswald';font-size:34px;font-weight:600;}
-.model{font-family:'Oswald';font-size:20px;font-style:italic;}
-.base-box{border:2px solid black;display:inline-block;padding:6px 12px;margin-top:10px;font-weight:bold;}
-.columns{display:flex;gap:10px;margin-top:15px;}
-.left{width:60%;font-size:12px;}
-.right{width:40%;font-size:12px;border-left:2px solid black;padding-left:10px;}
-.section-title{font-family:'Oswald';font-weight:600;margin-top:12px;border-bottom:1px solid black;text-transform:uppercase;}
-.option-row{display:flex;justify-content:space-between;}
-.option-row span:last-child{min-width:80px;text-align:right;}
-.total-box{border:3px solid black;padding:10px;text-align:center;font-family:'Oswald';font-size:18px;margin-top:10px;}
-.big-warranty{font-family:'Oswald';font-size:22px;font-weight:600;}
-.download-link{margin-top:15px;font-size:13px;color:#ff3c00;cursor:pointer;text-align:center;}
+body {
+  background:#222;
+  margin:0;
+  font-family:Arial;
+  -webkit-text-size-adjust:100%;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
 
+/* TOP BAR */
+.topbar {
+  width:100%;
+  background:linear-gradient(90deg,#0a0a0a,#000,#0a0a0a);
+  color:white;
+  padding:16px 0;
+  text-align:center;
+  font-family:'Oswald';
+  letter-spacing:4px;
+}
+
+/* CENTER SEARCH */
+.container {
+  max-width:420px;
+  width:100%;
+  margin:auto;
+  padding:20px;
+}
+
+input {
+  width:100%;
+  padding:14px;
+  font-size:16px;
+  background:#111;
+  color:white;
+  border:1px solid #aaa;
+  margin-bottom:12px;
+}
+
+button {
+  width:100%;
+  padding:14px;
+  font-size:16px;
+  background:#ff3c00;
+  color:white;
+  border:none;
+}
+
+/* RESULT */
+.result-container {
+  max-width:950px;
+  margin:20px auto;
+}
+
+/* STICKER */
+.sticker {
+  background:white;
+  padding:20px;
+  color:black;
+}
+
+.columns {
+  display:flex;
+  gap:10px;
+}
+
+.left, .right {
+  width:100%;
+  font-size:14px;
+}
+
+/* MOBILE */
 @media(max-width:768px){
-.container{margin:20px 12px;}
-input,button{font-size:16px;padding:14px;}
-.sticker{padding:14px;}
-.columns{flex-direction:column;}
-.left,.right{width:100%;border-left:none;padding-left:0;font-size:14px;}
-.year{float:none;font-size:22px;}
-.brand{font-size:26px;}
-.model{font-size:16px;}
-.section-title{font-size:14px;}
-.option-row{margin-bottom:6px;}
-.total-box{font-size:16px;}
-.big-warranty{font-size:18px;}
+  input,button {
+    font-size:18px;
+    padding:16px;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<div class="topbar"><span class="mopar">MOPAR</span> BUILD LOOKUP</div>
+<div class="topbar">MOPAR BUILD LOOKUP</div>
 
 <div class="container">
 <input id="vinInput" placeholder="ENTER VIN (17 CHARACTERS)" maxlength="17">
@@ -62,78 +101,17 @@ input,button{font-size:16px;padding:14px;}
 <div id="result" class="result-container"></div>
 
 <script>
-function formatPrice(num){return `$${Number(num).toLocaleString()}`;}
-
-function getCleanStandardFeatures(d){
-const safe=["Apple CarPlay","Android Auto","Bluetooth","Touch Screen","Backup Camera","Brake Assist","Keyless","Remote","Voice","Steering Wheel","WiFi"];
-let f=[];
-if(d.high_value_features?.STANDARD){
-f=d.high_value_features.STANDARD.map(x=>x.description).filter(desc=>safe.some(k=>desc.toLowerCase().includes(k.toLowerCase())));
-}
-return [...new Set(f)];
-}
-
 async function lookupVIN(){
 const vin=document.getElementById("vinInput").value.trim();
 const result=document.getElementById("result");
 if(vin.length!==17){result.innerHTML="Invalid VIN";return;}
-result.innerHTML='<div class="loader"></div>';
+result.innerHTML="Loading...";
 
 const res=await fetch(`https://mopar-vin-api.onrender.com/api/decode/${vin}`);
 const json=await res.json();
 const d=json.data;
 
-const exterior=d.exterior_color?.name||"";
-const interior=(d.interior_color?.name||"").replace("Perfromance","Performance");
-
-const features=getCleanStandardFeatures(d);
-const featuresHTML=features.length?features.map(f=>`• ${f}`).join("<br>"):"Standard features not available";
-
-let options=(d.installed_options_details||[]).map(o=>({code:o.code,name:o.name.trim(),price:Number(o.msrp)}));
-options=options.map(o=>o.code==="PP2"&&d.exterior_color?.name?{...o,name:d.exterior_color.name}:o);
-
-const seen=new Set();
-options=options.filter(o=>{if(seen.has(o.code))return false;seen.add(o.code);return true;});
-options.sort((a,b)=>b.price-a.price);
-
-let optionsHTML="";
-options.forEach(o=>{optionsHTML+=`<div class="option-row"><span>${o.name}</span><span>${formatPrice(o.price)}</span></div>`});
-
-result.innerHTML=`
-<div id="stickerContent" class="sticker">
-<div class="header">
-<div class="year">${d.year}</div>
-<div class="brand">${d.make.toUpperCase()}</div>
-<div class="model">${d.model} ${d.trim}</div>
-<div class="base-box">Base Price: ${formatPrice(d.msrp)}</div>
-</div>
-
-<div class="columns">
-<div class="left">
-<div class="section-title">Vehicle Info</div>
-Engine: ${d.engine}<br>
-Transmission: ${d.transmission}<br>
-Drivetrain: ${d.drivetrain}<br>
-Exterior: ${exterior}<br>
-Interior: ${interior}
-
-<div class="section-title">Standard Equipment</div>
-<div style="font-size:11px;">${featuresHTML}</div>
-</div>
-
-<div class="right">
-<div class="section-title">Optional Equipment</div>
-${optionsHTML}
-<br>
-Destination Charge: ${formatPrice(d.delivery_charges)}
-<div class="total-box">TOTAL PRICE: ${formatPrice(d.combined_msrp)}</div>
-<div class="big-warranty">5 YEAR / 60,000 MILE</div>
-</div>
-</div>
-</div>
-
-<div class="download-link" onclick="downloadPDF()">Download Sticker as PDF</div>
-`;
+result.innerHTML=`<div class="sticker">${d.year} ${d.make} ${d.model}</div>`;
 }
 </script>
 
